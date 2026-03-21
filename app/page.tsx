@@ -83,7 +83,7 @@ export default function Home() {
                 id="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                className="w-full px-6 py-4 text-2xl font-bold text-center uppercase border-4 border-purple-300 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all"
+                className="w-full px-6 py-4 text-2xl font-bold text-center uppercase border-4 border-purple-300 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all text-black"
                 placeholder="PARTY2024"
                 maxLength={20}
                 required

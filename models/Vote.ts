@@ -12,8 +12,8 @@ const VoteSchema = new Schema<IVote>({
   nominee: { type: String, required: true }
 }, { timestamps: true });
 
-// Ensure one vote per participant per award
-VoteSchema.index({ participantId: 1, awardId: 1 }, { unique: true });
+// Allow multiple votes per participant per award, but prevent duplicate votes for same nominee
+VoteSchema.index({ participantId: 1, awardId: 1, nominee: 1 }, { unique: true });
 
 const Vote: Model<IVote> = mongoose.models.Vote || mongoose.model<IVote>('Vote', VoteSchema);
 

@@ -12,21 +12,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check if already voted for this award
-    const existingVote = await Vote.findOne({ participantId, awardId });
+    // Check if already voted for this specific nominee in this award
+    const existingVote = await Vote.findOne({ participantId, awardId, nominee });
 
     if (existingVote) {
-      // Update existing vote
-      existingVote.nominee = nominee;
-      await existingVote.save();
-    } else {
-      // Create new vote
-      await Vote.create({ participantId, awardId, nominee });
+      // Vote already exists for this nominee
+      return NextResponse.json({ success: true, message: 'Vote already recorded' });
     }
 
+    // Create new vote (allows up to 3 per participant per award)
+    await Vote.create({ participantId, awardId, nominee });
+
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Vote error:', error);
+    // Handle duplicate key error gracefully
+    if (error.code === 11000) {
+      return NextResponse.json({ success: true, message: 'Vote already recorded' });
+    }
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

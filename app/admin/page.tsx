@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaUserPlus, FaTrash, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaUserPlus, FaTrash, FaCheck, FaTimes, FaEdit } from 'react-icons/fa';
 
 interface Participant {
   _id: string;
@@ -44,10 +44,15 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'participants' | 'votes' | 'results'>('participants');
 
-  // Add participant form
-  const [newName, setNewName] = useState('');
-  const [newCode, setNewCode] = useState('');
-  const [adding, setAdding] = useState(false);
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formCode, setFormCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -75,32 +80,72 @@ export default function AdminPage() {
     }
   };
 
-  const handleAddParticipant = async (e: React.FormEvent) => {
+  const openAddModal = () => {
+    setModalMode('add');
+    setFormName('');
+    setFormCode('');
+    setEditingId(null);
+    setShowModal(true);
+  };
+
+  const openEditModal = (participant: Participant) => {
+    setModalMode('edit');
+    setFormName(participant.name);
+    setFormCode(participant.code);
+    setEditingId(participant._id);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormName('');
+    setFormCode('');
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAdding(true);
+    setSubmitting(true);
 
     try {
-      const response = await fetch('/api/admin/participants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName, code: newCode })
-      });
+      if (modalMode === 'add') {
+        const response = await fetch('/api/admin/participants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: formName, code: formCode })
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (response.ok) {
-        setNewName('');
-        setNewCode('');
-        fetchData();
-        alert('Participant added successfully!');
+        if (response.ok) {
+          fetchData();
+          closeModal();
+          alert('Participant added successfully!');
+        } else {
+          alert(data.error || 'Error adding participant');
+        }
       } else {
-        alert(data.error || 'Error adding participant');
+        const response = await fetch('/api/admin/participants', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, name: formName, code: formCode })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          fetchData();
+          closeModal();
+          alert('Participant updated successfully!');
+        } else {
+          alert(data.error || 'Error updating participant');
+        }
       }
     } catch (error) {
-      console.error('Error adding participant:', error);
-      alert('Error adding participant');
+      console.error('Error submitting:', error);
+      alert('Error submitting form');
     } finally {
-      setAdding(false);
+      setSubmitting(false);
     }
   };
 
@@ -121,6 +166,36 @@ export default function AdminPage() {
     }
   };
 
+  const handleResetVoting = async () => {
+    if (!confirm('⚠️ WARNING: This will delete ALL votes and reset all participants voting status. This action cannot be undone!\n\nAre you absolutely sure you want to continue?')) {
+      return;
+    }
+
+    // Double confirmation
+    if (!confirm('This is your final confirmation. All voting data will be permanently deleted. Continue?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/reset-voting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Voting reset successfully!\n\n${data.deletedVotes} votes deleted\n${data.participantsReset} participants reset`);
+        fetchData();
+      } else {
+        alert(data.error || 'Error resetting voting');
+      }
+    } catch (error) {
+      console.error('Error resetting voting:', error);
+      alert('Error resetting voting');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex items-center justify-center">
@@ -134,19 +209,27 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 mb-2">
                 Admin Dashboard
               </h1>
               <p className="text-gray-600">Manage participants and view voting results</p>
             </div>
-            <a
-              href="/results"
-              className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-            >
-              🎭 Results Reveal Page
-            </a>
+            <div className="flex gap-3">
+              <button
+                onClick={handleResetVoting}
+                className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                🔄 Reset Voting
+              </button>
+              <a
+                href="/results"
+                className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                🎭 Results Reveal Page
+              </a>
+            </div>
           </div>
         </div>
 
@@ -189,36 +272,14 @@ export default function AdminPage() {
             {/* Participants Tab */}
             {activeTab === 'participants' && (
               <div>
-                {/* Add Participant Form */}
-                <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl p-6 mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                {/* Add Participant Button */}
+                <div className="mb-6 flex justify-end">
+                  <button
+                    onClick={openAddModal}
+                    className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg flex items-center gap-2"
+                  >
                     <FaUserPlus /> Add New Participant
-                  </h2>
-                  <form onSubmit={handleAddParticipant} className="flex gap-4">
-                    <input
-                      type="text"
-                      placeholder="Name"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder="Access Code"
-                      value={newCode}
-                      onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                      className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none uppercase"
-                      required
-                    />
-                    <button
-                      type="submit"
-                      disabled={adding}
-                      className="px-8 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all"
-                    >
-                      {adding ? 'Adding...' : 'Add'}
-                    </button>
-                  </form>
+                  </button>
                 </div>
 
                 {/* Participants List */}
@@ -251,12 +312,20 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <button
-                              onClick={() => handleDeleteParticipant(participant._id)}
-                              className="text-red-600 hover:text-red-800 font-semibold flex items-center gap-2"
-                            >
-                              <FaTrash /> Delete
-                            </button>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => openEditModal(participant)}
+                                className="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2"
+                              >
+                                <FaEdit /> Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteParticipant(participant._id)}
+                                className="text-red-600 hover:text-red-800 font-semibold flex items-center gap-2"
+                              >
+                                <FaTrash /> Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -363,6 +432,81 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+            <h2 className="text-3xl font-bold text-gray-800 mb-6">
+              {modalMode === 'add' ? 'Add New Participant' : 'Edit Participant'}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none text-black"
+                  placeholder="Enter name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Access Code
+                </label>
+                <input
+                  type="text"
+                  value={formCode}
+                  onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none uppercase text-black"
+                  placeholder="Enter access code"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all"
+                >
+                  {submitting ? 'Saving...' : modalMode === 'add' ? 'Add' : 'Update'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes scale-in {
+          from {
+            transform: scale(0.9);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        .animate-scale-in {
+          animation: scale-in 0.2s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

@@ -21,7 +21,7 @@ interface Participant {
 export default function VotePage() {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [awards, setAwards] = useState<Award[]>([]);
-  const [votes, setVotes] = useState<Record<string, string>>({});
+  const [votes, setVotes] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentAwardIndex, setCurrentAwardIndex] = useState(0);
@@ -58,21 +58,41 @@ export default function VotePage() {
   }, [router]);
 
   const handleVote = (awardId: string, nominee: string) => {
-    setVotes(prev => ({ ...prev, [awardId]: nominee }));
+    setVotes(prev => {
+      const currentVotes = prev[awardId] || [];
+      const isAlreadySelected = currentVotes.includes(nominee);
 
-    // Trigger mini confetti
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.7 }
+      let newVotes;
+      if (isAlreadySelected) {
+        // Deselect if already selected
+        newVotes = currentVotes.filter(n => n !== nominee);
+      } else {
+        // Add if less than 3 selected
+        if (currentVotes.length < 3) {
+          newVotes = [...currentVotes, nominee];
+          // Trigger mini confetti
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.7 }
+          });
+        } else {
+          // Already have 3 selections, show alert
+          alert('You can only select up to 3 people per category!');
+          return prev;
+        }
+      }
+
+      return { ...prev, [awardId]: newVotes };
     });
   };
 
   const handleNext = () => {
-    // Check if current award has been voted on
+    // Check if current award has been voted on (at least 1 selection)
     const currentAward = awards[currentAwardIndex];
-    if (!votes[currentAward._id]) {
-      alert('Please vote for this award before moving to the next one!');
+    const currentVotes = votes[currentAward._id] || [];
+    if (currentVotes.length === 0) {
+      alert('Please select at least 1 person before moving to the next award!');
       return;
     }
 
@@ -90,7 +110,7 @@ export default function VotePage() {
   const handleSubmitAll = async () => {
     if (!participant) return;
 
-    const votedAwards = Object.keys(votes);
+    const votedAwards = Object.keys(votes).filter(awardId => votes[awardId].length > 0);
     if (votedAwards.length === 0) {
       alert('Please vote for at least one award!');
       return;
@@ -99,20 +119,22 @@ export default function VotePage() {
     setSubmitting(true);
 
     try {
-      // Submit all votes
-      await Promise.all(
-        votedAwards.map(awardId =>
+      // Submit all votes - for each award, submit votes for all selected nominees
+      const votePromises = votedAwards.flatMap(awardId =>
+        votes[awardId].map(nominee =>
           fetch('/api/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               participantId: participant.id,
               awardId,
-              nominee: votes[awardId]
+              nominee
             })
           })
         )
       );
+
+      await Promise.all(votePromises);
 
       // Big celebration confetti
       confetti({
@@ -213,15 +235,25 @@ export default function VotePage() {
               <p className="text-xl text-gray-600">{currentAward.description}</p>
             </div>
 
+            {/* Selection Info */}
+            <div className="mb-4 text-center">
+              <p className="text-gray-600 font-semibold">
+                Select up to 3 people • {votes[currentAward._id]?.length || 0}/3 selected
+              </p>
+            </div>
+
             {/* Nominees */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
               {currentAward.nominees.map((nominee) => {
-                const isSelected = votes[currentAward._id] === nominee;
+                const currentVotes = votes[currentAward._id] || [];
+                const isSelected = currentVotes.includes(nominee);
+                const selectionIndex = currentVotes.indexOf(nominee);
+
                 return (
                   <button
                     key={nominee}
                     onClick={() => handleVote(currentAward._id, nominee)}
-                    className={`p-3 rounded-xl border-3 transition-all duration-200 transform hover:scale-105 ${
+                    className={`p-3 rounded-xl border-3 transition-all duration-200 transform hover:scale-105 relative ${
                       isSelected
                         ? 'border-green-500 bg-green-50 shadow-lg scale-105 ring-2 ring-green-400'
                         : 'border-gray-300 hover:border-purple-400 bg-white'
@@ -231,7 +263,12 @@ export default function VotePage() {
                       <span className={`text-sm font-bold text-gray-800 text-center leading-tight ${
                         isSelected ? 'text-green-700' : ''
                       }`}>{nominee}</span>
-                      {isSelected && <span className="text-xl">✅</span>}
+                      {isSelected && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xl">✅</span>
+                          <span className="text-xs font-black text-green-700">#{selectionIndex + 1}</span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
@@ -280,7 +317,9 @@ export default function VotePage() {
           <div className="flex flex-wrap gap-2">
             {awards.map((award, index) => {
               // Can only jump to voted awards or previous awards
-              const canJump = votes[award._id] || index <= currentAwardIndex;
+              const awardVotes = votes[award._id] || [];
+              const hasVotes = awardVotes.length > 0;
+              const canJump = hasVotes || index <= currentAwardIndex;
 
               return (
                 <button
@@ -290,7 +329,7 @@ export default function VotePage() {
                   className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                     currentAwardIndex === index
                       ? 'bg-purple-600 text-white'
-                      : votes[award._id]
+                      : hasVotes
                       ? 'bg-green-100 text-green-700 border-2 border-green-500'
                       : canJump
                       ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -298,6 +337,7 @@ export default function VotePage() {
                   }`}
                 >
                   {award.emoji} {index + 1}
+                  {hasVotes && <span className="ml-1 text-xs">({awardVotes.length})</span>}
                 </button>
               );
             })}
