@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Question</title>
+    <title>Trivia Quiz</title>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -281,8 +281,8 @@
     <!-- Admin/Settings View -->
     <div class="game-container" id="admin-view" style="display: none;">
         <div class="header">
-            <h1>⚙️ Question Settings</h1>
-            <p class="description">Configure question parameters for this challenge</p>
+            <h1>⚙️ Trivia Quiz Settings</h1>
+            <p class="description">Configure trivia quiz parameters for this challenge</p>
         </div>
 
         <div style="padding: 20px;">
@@ -372,13 +372,99 @@
     <script>
         // Get query parameters
         const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode'); // 'admin' for preview mode
         const roomId = urlParams.get('roomId');
         const participantId = urlParams.get('participantId');
         const awardId = urlParams.get('awardId');
-        const timeLimit = parseInt(urlParams.get('timeLimit')) || 0;
-        const title = urlParams.get('title') || 'Question';
-        const description = urlParams.get('description') || 'Choose your answer';
-        const correctAnswer = urlParams.get('correctAnswer') || null;
+        let timeLimit = parseInt(urlParams.get('timeLimit')) || 0;
+        let title = urlParams.get('title') || 'Trivia Question';
+        let description = urlParams.get('description') || 'Choose the correct answer';
+        const correctAnswer = urlParams.get('correctAnswer') || null; // Trivia games have correct answers
+
+        // Check if we're in admin/preview mode
+        const isAdminMode = mode === 'admin';
+
+        // Show appropriate view based on mode
+        if (isAdminMode) {
+            document.getElementById('admin-view').style.display = 'block';
+            document.getElementById('play-view').style.display = 'none';
+
+            // Initialize admin controls
+            initAdminControls();
+
+            // Stop here - don't initialize game
+        } else {
+            document.getElementById('admin-view').style.display = 'none';
+            document.getElementById('play-view').style.display = 'block';
+        }
+
+        // Admin controls initialization
+        async function initAdminControls() {
+            // Load existing settings from database
+            let savedSettings = {};
+            if (awardId && awardId !== 'preview') {
+                try {
+                    const response = await fetch(`/api/rooms/${roomId}/awards/${awardId}/settings`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        savedSettings = data.settings || {};
+                    }
+                } catch (error) {
+                    console.error('Failed to load settings:', error);
+                }
+            }
+
+            // Set initial values
+            const initialTimeLimit = savedSettings.timeLimit || timeLimit;
+            const initialMultipleVotes = savedSettings.multipleVotes || false;
+            const initialShowResults = savedSettings.showResults || false;
+
+            document.getElementById('admin-time-limit').value = initialTimeLimit;
+            document.getElementById('admin-time-display').textContent = initialTimeLimit;
+            document.getElementById('admin-question-type').value = 'trivia';
+            document.getElementById('admin-multiple-votes').value = initialMultipleVotes.toString();
+            document.getElementById('admin-show-results').value = initialShowResults.toString();
+
+            // Save settings when they change
+            const saveSettings = async () => {
+                const settings = {
+                    questionType: 'trivia',
+                    multipleVotes: document.getElementById('admin-multiple-votes').value === 'true',
+                    showResults: document.getElementById('admin-show-results').value === 'true',
+                    timeLimit: parseInt(document.getElementById('admin-time-limit').value)
+                };
+
+                if (awardId && awardId !== 'preview') {
+                    try {
+                        const response = await fetch(`/api/rooms/${roomId}/awards/${awardId}/settings`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ settings })
+                        });
+
+                        if (response.ok) {
+                            console.log('Settings saved successfully:', settings);
+                        }
+                    } catch (error) {
+                        console.error('Failed to save settings:', error);
+                    }
+                } else {
+                    console.log('Preview mode - settings not saved:', settings);
+                }
+            };
+
+            // Event listeners
+            document.getElementById('admin-time-limit').addEventListener('input', (e) => {
+                document.getElementById('admin-time-display').textContent = e.target.value;
+            });
+
+            document.getElementById('admin-time-limit').addEventListener('change', saveSettings);
+            document.getElementById('admin-question-type').addEventListener('change', saveSettings);
+            document.getElementById('admin-multiple-votes').addEventListener('change', saveSettings);
+            document.getElementById('admin-show-results').addEventListener('change', saveSettings);
+        }
+
+        if (isAdminMode) return; // Don't continue if in admin mode
 
         // Parse options from JSON string
         let options = [];

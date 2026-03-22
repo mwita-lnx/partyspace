@@ -7,10 +7,11 @@ export interface IAward {
   nominees: string[];
   emoji: string;
   order: number;
-  type?: 'voting' | 'multiple-choice' | 'ranking' | 'open-ended' | 'true-false' | 'speed-challenge' | 'color-match' | 'tap-battle' | 'quick-math' | 'word-race' | 'memory-flash' | 'reflex-test';
+  type?: 'voting' | 'opinion' | 'trivia' | 'multiple-choice' | 'ranking' | 'open-ended' | 'true-false' | 'speed-challenge' | 'color-match' | 'tap-battle' | 'quick-math' | 'word-race' | 'memory-flash' | 'reflex-test';
   options?: string[]; // For multiple-choice questions
   correctAnswer?: string; // For trivia questions
   timeLimit?: number; // In seconds
+  gameSettings?: Record<string, any>; // Game-specific settings per room
 }
 
 const AwardSchema = new Schema<IAward>({
@@ -22,12 +23,13 @@ const AwardSchema = new Schema<IAward>({
   order: { type: Number, default: 0 },
   type: {
     type: String,
-    enum: ['voting', 'multiple-choice', 'ranking', 'open-ended', 'true-false', 'speed-challenge', 'color-match', 'tap-battle', 'quick-math', 'word-race', 'memory-flash', 'reflex-test'],
+    enum: ['voting', 'opinion', 'trivia', 'multiple-choice', 'ranking', 'open-ended', 'true-false', 'speed-challenge', 'color-match', 'tap-battle', 'quick-math', 'word-race', 'memory-flash', 'reflex-test'],
     default: 'voting'
   },
   options: [{ type: String, trim: true }],
   correctAnswer: { type: String, trim: true },
-  timeLimit: { type: Number, min: 5, max: 300 }
+  timeLimit: { type: Number, min: 5, max: 300 },
+  gameSettings: { type: Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
 // Find awards by room

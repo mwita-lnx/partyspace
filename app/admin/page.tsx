@@ -120,6 +120,37 @@ export default function AdminPage() {
     }
   };
 
+  const getGamePreviewUrl = () => {
+    // Generate preview URL with mode=admin parameter
+    const params = new URLSearchParams({
+      mode: 'admin',
+      title: formTitle || 'Preview',
+      description: formDescription || 'This is a preview',
+      timeLimit: formTimeLimit.toString(),
+      roomId: roomId || 'preview',
+      participantId: 'preview',
+      awardId: editingAward?._id || 'preview'
+    });
+
+    // Determine which game HTML to load based on selected game type
+    const gameTypeMap: { [key: string]: string } = {
+      // Reaction games
+      'color-match': '/games/color-match.html',
+      'tap-battle': '/games/tap-battle.html',
+      'quick-math': '/games/quick-math.html',
+      'word-race': '/games/word-race.html',
+      'memory-flash': '/games/memory-flash.html',
+      'reflex-test': '/games/reflex-test.html',
+      // Question-based games
+      'voting': '/games/voting-game.html',
+      'opinion': '/games/opinion-game.html',
+      'trivia': '/games/trivia-game.html'
+    };
+
+    const gameUrl = gameTypeMap[formGameType] || '/games/voting-game.html';
+    return `${gameUrl}?${params.toString()}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -366,8 +397,8 @@ export default function AdminPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-scale-in">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full p-6 my-8 animate-scale-in">
             <div className="flex items-center gap-3 mb-6">
               <Image src="/magic-wand.png" alt="Form" width={40} height={40} />
               <h2 className="text-3xl font-bold text-gray-900">
@@ -375,7 +406,9 @@ export default function AdminPage() {
               </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Form Section */}
+              <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Title
@@ -404,26 +437,38 @@ export default function AdminPage() {
                 />
               </div>
 
-              {isReactionGame && (
-                <>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Game Type
-                    </label>
-                    <select
-                      value={formGameType}
-                      onChange={(e) => setFormGameType(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none text-gray-900"
-                      required
-                    >
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  {isReactionGame ? 'Game Type' : 'Question Type'}
+                </label>
+                <select
+                  value={formGameType}
+                  onChange={(e) => setFormGameType(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none text-gray-900"
+                  required
+                >
+                  {isReactionGame ? (
+                    <>
                       <option value="color-match">Color Match - Match colors quickly</option>
                       <option value="tap-battle">Tap Battle - Tap as fast as you can</option>
                       <option value="quick-math">Quick Math - Solve math problems</option>
                       <option value="word-race">Word Race - Type words fast</option>
                       <option value="memory-flash">Memory Flash - Remember sequences</option>
                       <option value="reflex-test">Reflex Test - Test your reaction time</option>
-                    </select>
-                  </div>
+                    </>
+                  ) : (
+                    <>
+                      <option value="voting">Voting - Participants vote for each other</option>
+                      <option value="opinion">Opinion Poll - Multiple choice questions</option>
+                      <option value="trivia">Trivia Quiz - Questions with correct answers</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {isReactionGame && (
+                <>
+                  <div>
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -442,22 +487,44 @@ export default function AdminPage() {
                 </>
               )}
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-400 to-cyan-400 text-white font-bold rounded-lg hover:from-teal-500 hover:to-cyan-500 transition-all"
-                >
-                  {editingAward ? 'Update' : 'Add'}
-                </button>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-400 to-cyan-400 text-white font-bold rounded-lg hover:from-teal-500 hover:to-cyan-500 transition-all"
+                  >
+                    {editingAward ? 'Update' : 'Add'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Game Preview Section - Show for all game types */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <Image src={isReactionGame ? '/gaming.gif' : '/quiz.gif'} alt="Preview" width={24} height={24} unoptimized />
+                  {isReactionGame ? 'Game' : 'Question'} Preview & Settings
+                </h3>
+                <div className="bg-white rounded-lg overflow-hidden shadow-lg">
+                  <iframe
+                    src={getGamePreviewUrl()}
+                    className="w-full"
+                    style={{ height: '500px', border: 'none' }}
+                    title="Game Preview"
+                  />
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  {isReactionGame
+                    ? 'Configure game-specific settings and preview gameplay'
+                    : 'Configure question-specific settings and preview layout'}
+                </p>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

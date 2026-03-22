@@ -206,7 +206,7 @@ export default function PlayPage() {
       category: room.category || 'custom'
     });
 
-    // Add all challenges as JSON
+    // Add all challenges as JSON including their game settings
     const challengesData = awards.map(award => {
       let options: string[] = [];
       if (award.options) {
@@ -222,7 +222,8 @@ export default function PlayPage() {
         type: award.type || 'voting',
         timeLimit: award.timeLimit || 0,
         options: options,
-        correctAnswer: award.correctAnswer
+        correctAnswer: award.correctAnswer,
+        gameSettings: (award as any).gameSettings || {}
       };
     });
 

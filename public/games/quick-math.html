@@ -199,7 +199,69 @@
     </style>
 </head>
 <body>
-    <div class="game-container">
+    <!-- Admin/Settings View -->
+    <div class="game-container" id="admin-view" style="display: none;">
+        <div class="header">
+            <h1>⚙️ Quick Math Settings</h1>
+            <p class="description">Configure game parameters for this challenge</p>
+        </div>
+
+        <div style="padding: 20px;">
+            <div style="background: #f8f9fa; border-radius: 15px; padding: 30px; margin-bottom: 20px;">
+                <h2 style="color: #2C3E50; margin-bottom: 20px; font-size: 1.5rem;">Game Configuration</h2>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 700; color: #2C3E50; margin-bottom: 10px;">
+                        Operation Type
+                    </label>
+                    <select id="admin-operation" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem;">
+                        <option value="mixed">Mixed Operations (+, -, ×, ÷)</option>
+                        <option value="addition">Addition Only (+)</option>
+                        <option value="subtraction">Subtraction Only (-)</option>
+                        <option value="multiplication">Multiplication Only (×)</option>
+                        <option value="division">Division Only (÷)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 700; color: #2C3E50; margin-bottom: 10px;">
+                        Difficulty Level
+                    </label>
+                    <select id="admin-difficulty" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem;">
+                        <option value="easy">Easy (1-20)</option>
+                        <option value="medium" selected>Medium (1-50)</option>
+                        <option value="hard">Hard (1-100)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 700; color: #2C3E50; margin-bottom: 10px;">
+                        Time Limit: <span id="admin-time-display">30</span> seconds
+                    </label>
+                    <input type="range" id="admin-time-limit" min="10" max="60" value="30"
+                           style="width: 100%; height: 8px; border-radius: 5px; background: #ddd;">
+                </div>
+
+                <div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #667EEA;">
+                    <h3 style="color: #667EEA; margin-bottom: 10px;">💡 Tips</h3>
+                    <ul style="color: #555; line-height: 1.8;">
+                        <li>Players earn 10 points for each correct answer</li>
+                        <li>No penalty for wrong answers</li>
+                        <li>Shorter time limits increase difficulty</li>
+                        <li>Mixed operations provide the most variety</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); color: white; border-radius: 15px; padding: 20px; text-align: center;">
+                <p style="font-size: 0.9rem; margin-bottom: 10px;">Preview Mode</p>
+                <p style="font-size: 1.2rem; font-weight: 700;">These settings will be saved per room</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Play View -->
+    <div class="game-container" id="play-view">
         <div class="header">
             <h1 id="title">Quick Math</h1>
             <p class="description" id="description">Solve as many problems as you can!</p>
@@ -233,15 +295,60 @@
     <script>
         // Get query parameters
         const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode'); // 'admin' for preview mode
         const roomId = urlParams.get('roomId');
         const participantId = urlParams.get('participantId');
         const awardId = urlParams.get('awardId');
-        const timeLimit = parseInt(urlParams.get('timeLimit')) || 30;
-        const title = urlParams.get('title') || 'Quick Math';
-        const description = urlParams.get('description') || 'Solve as many problems as you can!';
+        const challengesJson = urlParams.get('challenges');
 
-        // Initialize Game API
-        const gameAPI = new GameAPI(roomId, participantId, awardId, 'quick-math');
+        // Parse challenges to get settings
+        let gameSettings = {};
+        let timeLimit = 30;
+        let title = 'Quick Math';
+        let description = 'Solve as many problems as you can!';
+
+        if (challengesJson) {
+            try {
+                const challenges = JSON.parse(challengesJson);
+                const currentChallenge = challenges.find((c: any) => c.id === awardId) || challenges[0];
+                if (currentChallenge) {
+                    title = currentChallenge.title || title;
+                    description = currentChallenge.description || description;
+                    timeLimit = currentChallenge.timeLimit || timeLimit;
+                    gameSettings = currentChallenge.gameSettings || {};
+                }
+            } catch (error) {
+                console.error('Failed to parse challenges:', error);
+            }
+        }
+
+        // Fallback to direct URL params if no challenges found
+        if (!challengesJson) {
+            timeLimit = parseInt(urlParams.get('timeLimit')) || 30;
+            title = urlParams.get('title') || 'Quick Math';
+            description = urlParams.get('description') || 'Solve as many problems as you can!';
+        }
+
+        // Check if we're in admin/preview mode
+        const isAdminMode = mode === 'admin';
+
+        // Show appropriate view based on mode
+        if (isAdminMode) {
+            document.getElementById('admin-view').style.display = 'block';
+            document.getElementById('play-view').style.display = 'none';
+
+            // Initialize admin controls
+            initAdminControls();
+
+            // Stop here - don't initialize game
+            return;
+        } else {
+            document.getElementById('admin-view').style.display = 'none';
+            document.getElementById('play-view').style.display = 'block';
+        }
+
+        // Initialize Game API (only if not in admin mode)
+        const gameAPI = !isAdminMode ? new GameAPI(roomId, participantId, awardId, 'quick-math') : null;
 
         // Update UI
         document.getElementById('title').textContent = title;
@@ -259,17 +366,28 @@
         let totalTime = 0;
         let questionStartTime = Date.now();
 
-        // Determine operation type from title
+        // Determine operation type from saved settings or title
         let operators = ['+', '-', '×', '÷'];
-        const titleLower = title.toLowerCase();
-        if (titleLower.includes('addition')) {
+        const operationType = gameSettings.operation || detectOperationType(title);
+
+        if (operationType === 'addition') {
             operators = ['+'];
-        } else if (titleLower.includes('subtraction')) {
+        } else if (operationType === 'subtraction') {
             operators = ['-'];
-        } else if (titleLower.includes('multiplication')) {
+        } else if (operationType === 'multiplication') {
             operators = ['×'];
-        } else if (titleLower.includes('division')) {
+        } else if (operationType === 'division') {
             operators = ['÷'];
+        }
+
+        // Determine difficulty range from saved settings
+        const difficulty = gameSettings.difficulty || 'medium';
+        let numberRange = { min: 1, max: 50 }; // default medium
+
+        if (difficulty === 'easy') {
+            numberRange = { min: 1, max: 20 };
+        } else if (difficulty === 'hard') {
+            numberRange = { min: 1, max: 100 };
         }
 
         // Timer
@@ -299,21 +417,24 @@
             let num1, num2, answer;
 
             if (operator === '+') {
-                num1 = randomInt(1, 50);
-                num2 = randomInt(1, 50);
+                num1 = randomInt(numberRange.min, numberRange.max);
+                num2 = randomInt(numberRange.min, numberRange.max);
                 answer = num1 + num2;
             } else if (operator === '-') {
-                num1 = randomInt(10, 50);
-                num2 = randomInt(1, num1);
+                num1 = randomInt(Math.max(10, numberRange.min), numberRange.max);
+                num2 = randomInt(numberRange.min, num1);
                 answer = num1 - num2;
             } else if (operator === '×') {
-                num1 = randomInt(2, 12);
-                num2 = randomInt(2, 12);
+                // For multiplication, use smaller numbers even on hard
+                const multMax = Math.min(12, Math.floor(numberRange.max / 4));
+                num1 = randomInt(2, multMax);
+                num2 = randomInt(2, multMax);
                 answer = num1 * num2;
             } else { // ÷
                 // Generate division that results in whole number
-                num2 = randomInt(2, 12);
-                answer = randomInt(1, 12);
+                const divMax = Math.min(12, Math.floor(numberRange.max / 4));
+                num2 = randomInt(2, divMax);
+                answer = randomInt(1, divMax);
                 num1 = num2 * answer;
             }
 
@@ -398,22 +519,101 @@
             const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
             const avgResponseTime = totalQuestions > 0 ? Math.round(totalTime / totalQuestions) : 0;
 
-            // Submit score with detailed metrics using GameAPI
-            await gameAPI.completeGame({
-                score: score,
-                metrics: {
-                    correctAnswers: correctAnswers,
-                    wrongAnswers: wrongAnswers,
-                    accuracy: accuracy,
-                    avgResponseTime: avgResponseTime,
-                    totalQuestions: totalQuestions
-                },
-                timeSpent: timeLimit - timeLeft
-            }, 2000);
+            // Only submit score if not in admin/preview mode
+            if (!isAdminMode && gameAPI) {
+                await gameAPI.completeGame({
+                    score: score,
+                    metrics: {
+                        correctAnswers: correctAnswers,
+                        wrongAnswers: wrongAnswers,
+                        accuracy: accuracy,
+                        avgResponseTime: avgResponseTime,
+                        totalQuestions: totalQuestions
+                    },
+                    timeSpent: timeLimit - timeLeft
+                }, 2000);
+            } else {
+                // In admin mode, just show the results without submitting
+                console.log('Admin/Preview mode - score not submitted');
+            }
         }
 
-        // Initialize game
-        generateQuestion();
+        // Admin controls initialization
+        async function initAdminControls() {
+            // Load existing settings from database
+            let savedSettings = {};
+            if (awardId && awardId !== 'preview') {
+                try {
+                    const response = await fetch(`/api/rooms/${roomId}/awards/${awardId}/settings`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        savedSettings = data.settings || {};
+                    }
+                } catch (error) {
+                    console.error('Failed to load settings:', error);
+                }
+            }
+
+            // Set initial values from saved settings or URL params
+            const initialTimeLimit = savedSettings.timeLimit || timeLimit;
+            const initialOperation = savedSettings.operation || detectOperationType(title);
+            const initialDifficulty = savedSettings.difficulty || 'medium';
+
+            document.getElementById('admin-time-limit').value = initialTimeLimit;
+            document.getElementById('admin-time-display').textContent = initialTimeLimit;
+            document.getElementById('admin-operation').value = initialOperation;
+            document.getElementById('admin-difficulty').value = initialDifficulty;
+
+            // Save settings when they change
+            const saveSettings = async () => {
+                const settings = {
+                    operation: document.getElementById('admin-operation').value,
+                    difficulty: document.getElementById('admin-difficulty').value,
+                    timeLimit: parseInt(document.getElementById('admin-time-limit').value)
+                };
+
+                if (awardId && awardId !== 'preview') {
+                    try {
+                        const response = await fetch(`/api/rooms/${roomId}/awards/${awardId}/settings`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ settings })
+                        });
+
+                        if (response.ok) {
+                            console.log('Settings saved successfully:', settings);
+                        }
+                    } catch (error) {
+                        console.error('Failed to save settings:', error);
+                    }
+                } else {
+                    console.log('Preview mode - settings not saved:', settings);
+                }
+            };
+
+            // Event listeners for interactive controls with auto-save
+            document.getElementById('admin-time-limit').addEventListener('input', (e) => {
+                document.getElementById('admin-time-display').textContent = e.target.value;
+            });
+
+            document.getElementById('admin-time-limit').addEventListener('change', saveSettings);
+            document.getElementById('admin-operation').addEventListener('change', saveSettings);
+            document.getElementById('admin-difficulty').addEventListener('change', saveSettings);
+        }
+
+        function detectOperationType(title) {
+            const titleLower = title.toLowerCase();
+            if (titleLower.includes('addition')) return 'addition';
+            if (titleLower.includes('subtraction')) return 'subtraction';
+            if (titleLower.includes('multiplication')) return 'multiplication';
+            if (titleLower.includes('division')) return 'division';
+            return 'mixed';
+        }
+
+        // Initialize game (only if not in admin mode)
+        if (!isAdminMode) {
+            generateQuestion();
+        }
     </script>
 </body>
 </html>
