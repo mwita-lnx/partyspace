@@ -35,7 +35,6 @@ export default function ResultsPage() {
       setRevealed(new Array(data.results?.length || 0).fill(false));
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching results:', error);
       setLoading(false);
     }
   };
@@ -128,29 +127,39 @@ export default function ResultsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-800 to-orange-700 flex items-center justify-center">
-        <div className="text-white text-4xl font-bold animate-pulse">Loading Results...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)' }}>
+        <div className="text-center">
+          <div className="text-5xl mb-4 animate-bounce">🏆</div>
+          <div className="text-gray-700 text-xl font-medium">Tallying the votes...</div>
+          <div className="text-gray-500 text-sm mt-2">The suspense is real</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-800 to-orange-700 p-4">
+    <div className="min-h-screen p-4" style={{ background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)' }}>
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-8">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 text-center">
-          <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
-            🏆 BET AWARDS RESULTS 🏆
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            🏆 BET AWARDS RESULTS
           </h1>
-          <p className="text-2xl text-gray-700 font-bold">And the winners are...</p>
+          <p className="text-lg text-gray-600 font-medium">And the winners are...</p>
 
           <div className="mt-6">
-            <button
-              onClick={revealAll}
-              className="px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-xl rounded-2xl hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              🎭 Reveal All Winners
-            </button>
+            {!isRevealingAll && (
+              <button
+                onClick={revealAll}
+                className="px-6 py-3 text-white font-semibold text-base rounded-lg transition-colors btn-press btn-lift"
+                style={{ background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8C42 100%)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'linear-gradient(135deg, #FF5252 0%, #FF7A33 100%)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'linear-gradient(135deg, #FF6B6B 0%, #FF8C42 100%)')}
+                aria-label="Reveal all award winners automatically"
+              >
+                🎭 Reveal All Winners
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -165,15 +174,16 @@ export default function ResultsPage() {
             <div
               key={result.award.id}
               id={`award-card-${index}`}
-              className={`bg-white rounded-3xl shadow-2xl p-6 transition-all duration-300 ${
-                isCurrentlyRevealing ? 'animate-drum-roll scale-105' : ''
-              } ${isRevealed ? 'ring-4 ring-yellow-400' : ''}`}
+              className={`bg-white rounded-xl shadow-sm border p-6 transition-all duration-300 ${
+                isCurrentlyRevealing ? 'animate-drum-roll' : ''
+              }`}
+              style={isRevealed ? { borderColor: '#FFE66D', backgroundColor: '#FFFEF0', borderWidth: '2px' } : { borderColor: '#F3F4F6' }}
             >
               {/* Award Header */}
               <div className="text-center mb-6">
-                <div className="text-7xl mb-3 animate-bounce-slow">{result.award.emoji}</div>
-                <h2 className="text-3xl font-black text-gray-800 mb-2">{result.award.title}</h2>
-                <p className="text-gray-600">
+                <div className="text-5xl mb-3" aria-hidden="true">{result.award.emoji}</div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{result.award.title}</h2>
+                <p className="text-sm text-gray-600">
                   {result.totalVotes} vote{result.totalVotes !== 1 ? 's' : ''} cast
                 </p>
               </div>
@@ -183,7 +193,11 @@ export default function ResultsPage() {
                 <div className="text-center">
                   <button
                     onClick={() => revealWinner(index)}
-                    className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-xl rounded-2xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="px-6 py-3 text-white font-semibold rounded-lg transition-colors btn-press btn-lift"
+                    style={{ background: 'linear-gradient(135deg, #4ECDC4 0%, #45B7D1 100%)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'linear-gradient(135deg, #3DBDB3 0%, #3AA6C1 100%)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'linear-gradient(135deg, #4ECDC4 0%, #45B7D1 100%)')}
+                    aria-label={`Reveal winner for ${result.award.title}`}
                   >
                     🥁 Reveal Winner
                   </button>
@@ -192,16 +206,13 @@ export default function ResultsPage() {
 
               {/* Drum Roll Animation */}
               {isCurrentlyRevealing && (
-                <div className="text-center py-8">
-                  <div className="text-6xl mb-4 animate-spin-slow">🥁</div>
-                  <div className="text-3xl font-bold text-purple-600 animate-pulse">
-                    DRUM ROLL...
+                <div className="text-center py-8" role="status" aria-live="polite">
+                  <div className="text-5xl mb-4 animate-bounce" aria-hidden="true">🥁</div>
+                  <div className="text-xl font-semibold animate-pulse" style={{ color: '#FF6B6B' }}>
+                    And the winner is...
                   </div>
-                  <div className="flex justify-center gap-2 mt-4">
-                    <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-3 h-3 bg-pink-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-3 h-3 bg-orange-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
+                  <div className="text-gray-500 text-sm mt-2">Drumroll please!</div>
+                  <span className="sr-only">Revealing winner...</span>
                 </div>
               )}
 
@@ -321,13 +332,26 @@ export default function ResultsPage() {
       {isRevealingAll && (
         <button
           onClick={stopRevealAll}
-          className="fixed bottom-8 right-8 z-50 px-8 py-4 bg-red-500 text-white font-bold text-xl rounded-full hover:bg-red-600 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all animate-pulse"
+          className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 shadow-lg transition-colors btn-press btn-lift animate-pulse"
+          aria-label="Stop automatic reveal"
         >
-          ⏹️ Stop Reveal
+          ⏹ Stop Reveal
         </button>
       )}
 
       <style jsx>{`
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border-width: 0;
+        }
+
         @keyframes drum-roll {
           0%, 100% { transform: translateX(0) rotate(0deg); }
           10% { transform: translateX(-5px) rotate(-2deg); }

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Math</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2C3E50;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 1.2rem;
+            color: #7F8C8D;
+            margin-bottom: 20px;
+        }
+
+        .timer {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #FF6B6B, #FF8C42);
+            color: white;
+            border-radius: 50px;
+            font-size: 2rem;
+            font-weight: 700;
+            min-width: 100px;
+        }
+
+        .timer.warning {
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .question-area {
+            margin: 30px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .equation {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .answer-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .answer-btn {
+            padding: 30px;
+            font-size: 2rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #F8F9FA;
+            color: #2C3E50;
+        }
+
+        .answer-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .answer-btn:active {
+            transform: scale(0.95);
+        }
+
+        .answer-btn.correct {
+            background: #2ECC71;
+            color: white;
+        }
+
+        .answer-btn.wrong {
+            background: #E74C3C;
+            color: white;
+        }
+
+        .score {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2C3E50;
+            margin-top: 20px;
+        }
+
+        .score span {
+            color: #667EEA;
+            font-size: 2rem;
+        }
+
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+
+        .feedback.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .feedback.correct {
+            border: 5px solid #2ECC71;
+        }
+
+        .feedback.wrong {
+            border: 5px solid #E74C3C;
+        }
+
+        .feedback h2 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .feedback.correct h2 {
+            color: #2ECC71;
+        }
+
+        .feedback.wrong h2 {
+            color: #E74C3C;
+        }
+
+        .game-over {
+            display: none;
+            text-align: center;
+        }
+
+        .game-over.show {
+            display: block;
+        }
+
+        .game-over h2 {
+            font-size: 2.5rem;
+            color: #2C3E50;
+            margin-bottom: 20px;
+        }
+
+        .game-over .final-score {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #667EEA;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 id="title">Quick Math</h1>
+            <p class="description" id="description">Solve as many problems as you can!</p>
+            <div class="timer" id="timer">30</div>
+        </div>
+
+        <div id="game-content">
+            <div class="question-area">
+                <div class="equation" id="equation">5 + 3 = ?</div>
+            </div>
+
+            <div class="answer-grid" id="answer-grid"></div>
+
+            <div class="score">
+                Score: <span id="score">0</span>
+            </div>
+        </div>
+
+        <div class="game-over" id="game-over">
+            <h2>Time's Up!</h2>
+            <div class="final-score" id="final-score">0</div>
+            <p>Points earned</p>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback">
+        <h2 id="feedback-text">Correct!</h2>
+    </div>
+
+    <script src="/games/game-api.js"></script>
+    <script>
+        // Get query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('roomId');
+        const participantId = urlParams.get('participantId');
+        const awardId = urlParams.get('awardId');
+        const timeLimit = parseInt(urlParams.get('timeLimit')) || 30;
+        const title = urlParams.get('title') || 'Quick Math';
+        const description = urlParams.get('description') || 'Solve as many problems as you can!';
+
+        // Initialize Game API
+        const gameAPI = new GameAPI(roomId, participantId, awardId, 'quick-math');
+
+        // Update UI
+        document.getElementById('title').textContent = title;
+        document.getElementById('description').textContent = description;
+        document.getElementById('timer').textContent = timeLimit;
+
+        // Game state
+        let score = 0;
+        let timeLeft = timeLimit;
+        let gameActive = true;
+        let currentAnswer = 0;
+        let answering = false;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let totalTime = 0;
+        let questionStartTime = Date.now();
+
+        // Determine operation type from title
+        let operators = ['+', '-', '×', '÷'];
+        const titleLower = title.toLowerCase();
+        if (titleLower.includes('addition')) {
+            operators = ['+'];
+        } else if (titleLower.includes('subtraction')) {
+            operators = ['-'];
+        } else if (titleLower.includes('multiplication')) {
+            operators = ['×'];
+        } else if (titleLower.includes('division')) {
+            operators = ['÷'];
+        }
+
+        // Timer
+        const timerElement = document.getElementById('timer');
+        const timerInterval = setInterval(() => {
+            if (timeLeft > 0 && gameActive) {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+
+                if (timeLeft <= 10) {
+                    timerElement.classList.add('warning');
+                }
+            } else {
+                endGame();
+            }
+        }, 1000);
+
+        // Generate random number
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Generate question
+        function generateQuestion() {
+            questionStartTime = Date.now();
+            const operator = operators[randomInt(0, operators.length - 1)];
+            let num1, num2, answer;
+
+            if (operator === '+') {
+                num1 = randomInt(1, 50);
+                num2 = randomInt(1, 50);
+                answer = num1 + num2;
+            } else if (operator === '-') {
+                num1 = randomInt(10, 50);
+                num2 = randomInt(1, num1);
+                answer = num1 - num2;
+            } else if (operator === '×') {
+                num1 = randomInt(2, 12);
+                num2 = randomInt(2, 12);
+                answer = num1 * num2;
+            } else { // ÷
+                // Generate division that results in whole number
+                num2 = randomInt(2, 12);
+                answer = randomInt(1, 12);
+                num1 = num2 * answer;
+            }
+
+            currentAnswer = answer;
+
+            // Display equation
+            document.getElementById('equation').textContent = `${num1} ${operator} ${num2} = ?`;
+
+            // Generate answer options
+            const options = [answer];
+            while (options.length < 4) {
+                const offset = randomInt(-10, 10);
+                const wrongAnswer = answer + offset;
+                if (wrongAnswer > 0 && !options.includes(wrongAnswer)) {
+                    options.push(wrongAnswer);
+                }
+            }
+
+            // Shuffle options
+            options.sort(() => Math.random() - 0.5);
+
+            // Display options
+            const answerGrid = document.getElementById('answer-grid');
+            answerGrid.innerHTML = '';
+
+            options.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = option;
+                btn.addEventListener('click', () => handleAnswer(option));
+                answerGrid.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(answer) {
+            if (answering || !gameActive) return;
+            answering = true;
+
+            const responseTime = Date.now() - questionStartTime;
+            totalTime += responseTime;
+
+            const feedback = document.getElementById('feedback');
+            const feedbackText = document.getElementById('feedback-text');
+
+            if (answer === currentAnswer) {
+                // Correct
+                correctAnswers++;
+                score += 10;
+                document.getElementById('score').textContent = score;
+
+                feedback.className = 'feedback correct show';
+                feedbackText.textContent = 'Correct! +10';
+
+                setTimeout(() => {
+                    feedback.classList.remove('show');
+                    answering = false;
+                    generateQuestion();
+                }, 500);
+            } else {
+                // Wrong
+                wrongAnswers++;
+                feedback.className = 'feedback wrong show';
+                feedbackText.textContent = 'Wrong!';
+
+                setTimeout(() => {
+                    feedback.classList.remove('show');
+                    answering = false;
+                    generateQuestion();
+                }, 500);
+            }
+        }
+
+        async function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+
+            document.getElementById('game-content').style.display = 'none';
+            document.getElementById('game-over').classList.add('show');
+            document.getElementById('final-score').textContent = score;
+
+            const totalQuestions = correctAnswers + wrongAnswers;
+            const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+            const avgResponseTime = totalQuestions > 0 ? Math.round(totalTime / totalQuestions) : 0;
+
+            // Submit score with detailed metrics using GameAPI
+            await gameAPI.completeGame({
+                score: score,
+                metrics: {
+                    correctAnswers: correctAnswers,
+                    wrongAnswers: wrongAnswers,
+                    accuracy: accuracy,
+                    avgResponseTime: avgResponseTime,
+                    totalQuestions: totalQuestions
+                },
+                timeSpent: timeLimit - timeLeft
+            }, 2000);
+        }
+
+        // Initialize game
+        generateQuestion();
+    </script>
+</body>
+</html>
