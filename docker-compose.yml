@@ -10,8 +10,8 @@ services:
       - NODE_ENV=production
       # Points to tamashani's MongoDB container via shared network
       - MONGODB_URI=mongodb://admin:tamashani_mongo_2025@mongodb:27017/bet-awards?authSource=admin
-      - JWT_SECRET=${JWT_SECRET}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - JWT_SECRET=1f6c0e5be099ec712c23db0ee9a082fcc209cdaf145437f1fe951817da017359
+      - NEXTAUTH_SECRET=37e7a96618537acc2ab752fc7e3ae766609164b688ed17d4162976366925df8c
     restart: unless-stopped
     networks:
       - tamashani-network   # join tamashani's existing network to reach `mongodb`
