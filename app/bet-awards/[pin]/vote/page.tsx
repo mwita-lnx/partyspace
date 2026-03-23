@@ -26,8 +26,6 @@ interface Session {
   status: string;
 }
 
-
-
 export default function BETAwardsVotePage({ params }: PageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
@@ -37,13 +35,14 @@ export default function BETAwardsVotePage({ params }: PageProps) {
   const [voterName, setVoterName] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [votes, setVotes] = useState<Record<string, string>>({});
+  // savedVotes = votes already persisted on the server (locked, cannot re-vote)
+  const [savedVotes, setSavedVotes] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<'right' | 'left'>('right');
-  const [justVoted, setJustVoted] = useState(false);
 
   useEffect(() => {
     const name = localStorage.getItem('voterName') || '';
@@ -65,14 +64,30 @@ export default function BETAwardsVotePage({ params }: PageProps) {
         const sess: Session = sessData.session;
         setSession(sess);
 
-        const awardsRes = await fetch(`/api/sessions/${sess.id}/awards`);
+        const [awardsRes, votesRes] = await Promise.all([
+          fetch(`/api/sessions/${sess.id}/awards`),
+          fetch(`/api/vote?sessionId=${sess.id}&voterName=${encodeURIComponent(name)}`),
+        ]);
+
         if (!awardsRes.ok) {
           setError('Could not load awards. Please try again.');
           setLoading(false);
           return;
         }
+
         const awardsData = await awardsRes.json();
         setAwards(awardsData.awards || []);
+
+        // Pre-populate votes from server (these are locked)
+        if (votesRes.ok) {
+          const votesData = await votesRes.json();
+          const existing: Record<string, string> = {};
+          for (const v of votesData.votes || []) {
+            existing[v.awardId] = v.nominee;
+          }
+          setVotes(existing);
+          setSavedVotes(existing);
+        }
       } catch {
         setError('Connection error. Please try again.');
       } finally {
@@ -96,9 +111,9 @@ export default function BETAwardsVotePage({ params }: PageProps) {
   const handleVote = (nominee: string) => {
     const award = awards[currentIndex];
     if (!award) return;
+    // Prevent changing a vote that's already saved on the server
+    if (savedVotes[award._id]) return;
     setVotes(prev => ({ ...prev, [award._id]: nominee }));
-    setJustVoted(true);
-    setTimeout(() => setJustVoted(false), 600);
   };
 
   const handleNext = () => {
@@ -113,8 +128,13 @@ export default function BETAwardsVotePage({ params }: PageProps) {
     if (!session || submitting) return;
     setSubmitting(true);
     try {
+      // Only submit awards that haven't been saved yet
+      const pendingVotes = Object.entries(votes).filter(
+        ([awardId]) => !savedVotes[awardId]
+      );
+
       await Promise.all(
-        Object.entries(votes).map(([awardId, nominee]) =>
+        pendingVotes.map(([awardId, nominee]) =>
           fetch(`/api/sessions/${session.id}/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -135,6 +155,7 @@ export default function BETAwardsVotePage({ params }: PageProps) {
 
   const currentAward = awards[currentIndex];
   const currentVote = currentAward ? votes[currentAward._id] : undefined;
+  const isLocked = currentAward ? !!savedVotes[currentAward._id] : false;
   const votedCount = Object.keys(votes).length;
   const allVoted = votedCount === awards.length && awards.length > 0;
   const progress = awards.length > 0 ? (votedCount / awards.length) * 100 : 0;
@@ -292,8 +313,24 @@ export default function BETAwardsVotePage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Selection status */}
-          {currentVote ? (
+          {/* Selection / lock status */}
+          {isLocked ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+              border: '2px solid #86EFAC',
+              borderRadius: 12,
+              padding: '10px 16px',
+              marginBottom: 18,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}>
+              <span style={{ fontSize: 18 }}>🔒</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>
+                Vote saved — <span style={{ color: '#16A34A' }}>{currentVote}</span>
+              </span>
+            </div>
+          ) : currentVote ? (
             <div style={{
               background: 'linear-gradient(135deg, #FFF9E6 0%, #FFF0DC 100%)',
               border: '2px solid #FFE66D',
@@ -329,14 +366,18 @@ export default function BETAwardsVotePage({ params }: PageProps) {
                   <button
                     key={nominee}
                     onClick={() => handleVote(nominee)}
+                    disabled={isLocked}
+                    title={isLocked ? 'This vote is already saved' : undefined}
                     style={{
                       padding: '14px 10px',
                       borderRadius: 14,
                       border: chosen ? '2px solid #F4A261' : '2px solid #E5E7EB',
-                      background: chosen
+                      background: isLocked && chosen
+                        ? 'linear-gradient(135deg, #BBF7D0 0%, #86EFAC 100%)'
+                        : chosen
                         ? 'linear-gradient(135deg, #FFE66D 0%, #F4A261 100%)'
                         : '#F9FAFB',
-                      cursor: 'pointer',
+                      cursor: isLocked ? 'default' : 'pointer',
                       fontFamily: "'Quicksand', sans-serif",
                       fontWeight: 700,
                       fontSize: 14,
@@ -344,11 +385,12 @@ export default function BETAwardsVotePage({ params }: PageProps) {
                       textAlign: 'center',
                       transition: 'all 0.2s ease',
                       transform: chosen ? 'scale(1.04)' : 'scale(1)',
-                      boxShadow: chosen ? '0 4px 16px rgba(244,162,97,0.35)' : 'none',
+                      boxShadow: chosen && !isLocked ? '0 4px 16px rgba(244,162,97,0.35)' : 'none',
                       lineHeight: 1.3,
+                      opacity: isLocked && !chosen ? 0.45 : 1,
                     }}
                   >
-                    {chosen && <span style={{ display: 'block', fontSize: 16, marginBottom: 4 }}>✓</span>}
+                    {chosen && <span style={{ display: 'block', fontSize: 16, marginBottom: 4 }}>{isLocked ? '🔒' : '✓'}</span>}
                     {nominee}
                   </button>
                 );
@@ -381,10 +423,10 @@ export default function BETAwardsVotePage({ params }: PageProps) {
             {currentIndex < awards.length - 1 ? (
               <button
                 onClick={handleNext}
-                disabled={!currentVote}
+                disabled={!currentVote && !isLocked}
                 style={{
                   padding: '12px 28px',
-                  background: currentVote
+                  background: (currentVote || isLocked)
                     ? 'linear-gradient(135deg, #FFE66D 0%, #F4A261 100%)'
                     : '#D1D5DB',
                   border: 'none',
@@ -393,10 +435,10 @@ export default function BETAwardsVotePage({ params }: PageProps) {
                   fontWeight: 800,
                   fontSize: 15,
                   color: '#1F2937',
-                  cursor: currentVote ? 'pointer' : 'not-allowed',
-                  opacity: currentVote ? 1 : 0.5,
+                  cursor: (currentVote || isLocked) ? 'pointer' : 'not-allowed',
+                  opacity: (currentVote || isLocked) ? 1 : 0.5,
                   transition: 'all 0.2s',
-                  boxShadow: currentVote ? '0 4px 16px rgba(244,162,97,0.3)' : 'none',
+                  boxShadow: (currentVote || isLocked) ? '0 4px 16px rgba(244,162,97,0.3)' : 'none',
                 }}
               >
                 Next →
@@ -462,7 +504,7 @@ export default function BETAwardsVotePage({ params }: PageProps) {
               }}
             >
               {a.emoji} {a.title.length > 14 ? a.title.slice(0, 14) + '…' : a.title}
-              {votes[a._id] && ' ✓'}
+              {savedVotes[a._id] ? ' 🔒' : votes[a._id] ? ' ✓' : ''}
             </button>
           ))}
         </div>
