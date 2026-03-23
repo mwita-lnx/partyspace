@@ -26,15 +26,7 @@ interface Session {
   status: string;
 }
 
-// GIFs used as category accents — cycles through them
-const CATEGORY_GIFS = [
-  '/competition.gif',
-  '/festival.gif',
-  '/dressing-room.gif',
-  '/personnel.gif',
-  '/q-and-a.gif',
-  '/idea.gif',
-];
+
 
 export default function BETAwardsVotePage({ params }: PageProps) {
   const resolvedParams = use(params);
@@ -146,7 +138,6 @@ export default function BETAwardsVotePage({ params }: PageProps) {
   const votedCount = Object.keys(votes).length;
   const allVoted = votedCount === awards.length && awards.length > 0;
   const progress = awards.length > 0 ? (votedCount / awards.length) * 100 : 0;
-  const categoryGif = CATEGORY_GIFS[currentIndex % CATEGORY_GIFS.length];
 
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
@@ -281,7 +272,7 @@ export default function BETAwardsVotePage({ params }: PageProps) {
           {/* Award header with GIF */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 20, borderBottom: '2px solid #F3F4F6' }}>
             <Image
-              src={categoryGif}
+              src="/polls.gif"
               alt={currentAward.title}
               width={80}
               height={80}

@@ -1,0 +1,102 @@
+name: Deploy BET Awards
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install sshpass
+      run: sudo apt-get update && sudo apt-get install -y sshpass
+
+    - name: Deploy BET Awards Application
+      env:
+        SERVER_HOST: 64.227.120.220
+        SERVER_USER: root
+        SERVER_PASSWORD: lnx.1Mwita
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+      run: |
+        sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'ENDSSH'
+
+          set -e
+
+          echo "🚀 Starting BET Awards Deployment"
+
+          # ----------------------------------------------------
+          # Ensure tamashani user exists (shared with tamashani)
+          # ----------------------------------------------------
+          if ! id -u tamashani &>/dev/null; then
+            echo "👤 Creating tamashani user..."
+            useradd -m -s /bin/bash tamashani
+            usermod -aG sudo,docker tamashani
+            echo "tamashani:lnx.1Mwita" | chpasswd
+            echo "✅ User tamashani created"
+          else
+            echo "✅ User tamashani already exists"
+          fi
+
+          # ----------------------------------------------------
+          # Navigate to home directory
+          # ----------------------------------------------------
+          cd /home/tamashani
+
+          # ----------------------------------------------------
+          # Clone or update repository
+          # ----------------------------------------------------
+          if [ ! -d "bet-awards/.git" ]; then
+            echo "📦 Cloning BET Awards repository..."
+            su - tamashani -c "git clone https://${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git bet-awards"
+          else
+            echo "🔄 Updating BET Awards repository..."
+            su - tamashani -c "cd /home/tamashani/bet-awards && git fetch origin main && git reset --hard origin/main"
+          fi
+
+          # ----------------------------------------------------
+          # Navigate to app directory
+          # ----------------------------------------------------
+          cd /home/tamashani/bet-awards
+
+          # ----------------------------------------------------
+          # Fix permissions
+          # ----------------------------------------------------
+          chown -R tamashani:tamashani /home/tamashani/bet-awards
+
+          # ----------------------------------------------------
+          # Ensure tamashani-network exists (created by tamashani stack)
+          # If tamashani isn't running yet, create the network manually
+          # ----------------------------------------------------
+          docker network inspect tamashani-network >/dev/null 2>&1 || \
+            docker network create tamashani-network
+
+          # ----------------------------------------------------
+          # ZERO-DOWNTIME DOCKER DEPLOYMENT
+          # ----------------------------------------------------
+          echo "🐳 Building BET Awards container..."
+          docker compose build --no-cache
+
+          echo "🔄 Starting BET Awards with zero downtime..."
+          docker compose up -d --build --force-recreate --remove-orphans
+
+          docker builder prune -a -f
+          docker image prune -a -f
+
+          # ----------------------------------------------------
+          # Show status
+          # ----------------------------------------------------
+          echo "📊 Container status:"
+          docker compose ps
+
+          # ----------------------------------------------------
+          # Cleanup unused images
+          # ----------------------------------------------------
+          echo "🧹 Cleaning unused Docker images..."
+          docker image prune -f
+
+          echo "✅ BET Awards deployment complete — NO DOWNTIME 🎉"
+
+        ENDSSH
