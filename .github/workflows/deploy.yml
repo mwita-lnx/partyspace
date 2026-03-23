@@ -50,7 +50,7 @@ jobs:
           # ----------------------------------------------------
           if [ ! -d "bet-awards/.git" ]; then
             echo "📦 Cloning BET Awards repository..."
-            su - tamashani -c "git clone https://${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git bet-awards"
+            su - tamashani -c "git clone https://$GITHUB_TOKEN@github.com/${{ github.repository }}.git bet-awards"
           else
             echo "🔄 Updating BET Awards repository..."
             su - tamashani -c "cd /home/tamashani/bet-awards && git fetch origin main && git reset --hard origin/main"

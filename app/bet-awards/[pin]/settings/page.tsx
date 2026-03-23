@@ -231,6 +231,7 @@ export default function BETAwardsSettings({ params }: PageProps) {
   const [newDesc, setNewDesc] = useState('');
   const [newEmoji, setNewEmoji] = useState('🏆');
   const [dirty, setDirty] = useState(false);
+  const [resettingVotes, setResettingVotes] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -287,6 +288,17 @@ export default function BETAwardsSettings({ params }: PageProps) {
 
   const showSuccess = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(''), 3000); };
 
+  const resetVoting = async () => {
+    if (!confirm('Reset ALL votes for this session? Every voter will be able to vote again.')) return;
+    setResettingVotes(true);
+    try {
+      const res = await fetch(`/api/sessions/${sessionInfo.id}/reset-votes`, { method: 'DELETE' });
+      if (res.ok) showSuccess('All votes have been reset. Voters can vote again.');
+      else setError('Failed to reset votes.');
+    } catch { setError('Failed to reset votes.'); }
+    finally { setResettingVotes(false); }
+  };
+
   const totalNominees = awards.reduce((s, a) => s + a.nominees.length, 0);
   const awardsReady = awards.filter(a => a.nominees.length >= 2).length;
 
@@ -342,6 +354,16 @@ export default function BETAwardsSettings({ params }: PageProps) {
               style={{ background: dirty ? 'linear-gradient(135deg, #4ECDC4, #45B7D1)' : '#E5E7EB', color: dirty ? '#fff' : '#9CA3AF' }}
             >
               {saving ? 'Saving…' : dirty ? '💾 Save Changes' : 'Saved ✓'}
+            </button>
+            <button
+              onClick={resetVoting}
+              disabled={resettingVotes}
+              className="px-3 py-2 rounded-lg font-bold text-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #FEE2E2, #FECACA)', color: '#B91C1C', border: '1.5px solid #FCA5A5' }}
+              title="Reset all votes for this session"
+            >
+              <Image src="/stop.gif" alt="Reset" width={20} height={20} unoptimized style={{ objectFit: 'contain' }} />
+              {resettingVotes ? 'Resetting…' : 'Reset Votes'}
             </button>
             <button
               onClick={async () => {

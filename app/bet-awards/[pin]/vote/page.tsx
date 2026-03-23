@@ -37,6 +37,7 @@ export default function BETAwardsVotePage({ params }: PageProps) {
   const [votes, setVotes] = useState<Record<string, string>>({});
   // savedVotes = votes already persisted on the server (locked, cannot re-vote)
   const [savedVotes, setSavedVotes] = useState<Record<string, string>>({});
+  const allLocked = awards.length > 0 && awards.every(a => !!savedVotes[a._id]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -325,7 +326,7 @@ export default function BETAwardsVotePage({ params }: PageProps) {
               alignItems: 'center',
               gap: 8
             }}>
-              <span style={{ fontSize: 18 }}>🔒</span>
+              <Image src="/stop.gif" alt="Locked" width={24} height={24} unoptimized style={{ objectFit: 'contain', flexShrink: 0 }} />
               <span style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>
                 Vote saved — <span style={{ color: '#16A34A' }}>{currentVote}</span>
               </span>
@@ -390,7 +391,13 @@ export default function BETAwardsVotePage({ params }: PageProps) {
                       opacity: isLocked && !chosen ? 0.45 : 1,
                     }}
                   >
-                    {chosen && <span style={{ display: 'block', fontSize: 16, marginBottom: 4 }}>{isLocked ? '🔒' : '✓'}</span>}
+                    {chosen && (
+                      <span style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+                        {isLocked
+                          ? <Image src="/stop.gif" alt="Locked" width={20} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                          : <span style={{ fontSize: 16 }}>✓</span>}
+                      </span>
+                    )}
                     {nominee}
                   </button>
                 );
@@ -504,10 +511,40 @@ export default function BETAwardsVotePage({ params }: PageProps) {
               }}
             >
               {a.emoji} {a.title.length > 14 ? a.title.slice(0, 14) + '…' : a.title}
-              {savedVotes[a._id] ? ' 🔒' : votes[a._id] ? ' ✓' : ''}
+              {savedVotes[a._id]
+                ? <Image src="/stop.gif" alt="Locked" width={14} height={14} unoptimized style={{ objectFit: 'contain', display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                : votes[a._id] ? ' ✓' : ''}
             </button>
           ))}
         </div>
+
+        {/* Go to Results — shown when all votes are already saved */}
+        {allLocked && (
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <button
+              onClick={() => router.push(`/bet-awards/${resolvedParams.pin}/results`)}
+              style={{
+                padding: '16px 40px',
+                background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+                border: 'none',
+                borderRadius: 16,
+                fontFamily: "'Quicksand', sans-serif",
+                fontWeight: 800,
+                fontSize: 17,
+                color: '#fff',
+                cursor: 'pointer',
+                boxShadow: '0 6px 24px rgba(34,197,94,0.35)',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              🏆 View Results
+            </button>
+            <p style={{ color: '#6B7280', fontSize: 12, marginTop: 10 }}>Your votes are already saved</p>
+          </div>
+        )}
 
         <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 12, marginTop: 20 }}>
           No login required to vote
