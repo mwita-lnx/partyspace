@@ -19,7 +19,7 @@ services:
     image: mongo:latest
     container_name: partyspace-mongodb
     ports:
-      - "27018:27017"       # Use 27018 to avoid conflicts
+      - "27017:27017"       # Default MongoDB port
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=partyspace_mongo_2025
