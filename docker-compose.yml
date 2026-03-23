@@ -1,4 +1,20 @@
 services:
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'       # HTTP
+      - '443:443'     # HTTPS
+      - '81:81'       # Admin UI
+    environment:
+      DB_SQLITE_FILE: "/data/database.sqlite"
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+    networks:
+      - tamashani-network
+
   mongodb:
     image: mongo:latest
     container_name: partyspace-mongodb
@@ -37,9 +53,13 @@ services:
 
 volumes:
   mongodb_data:
+  npm_data:
+    driver: local
+  npm_letsencrypt:
+    driver: local
 
 networks:
   partyspace-network:
     driver: bridge
   tamashani-network:
-    external: true          # owned by tamashani's compose — must be running first
+    driver: bridge          # shared network with other services
