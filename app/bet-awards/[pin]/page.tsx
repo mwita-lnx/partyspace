@@ -8,6 +8,12 @@ interface PageProps {
   params: Promise<{ pin: string }>;
 }
 
+interface AuthUser {
+  userId: string;
+  email: string;
+  name: string;
+}
+
 export default function BETAwardsLanding({ params }: PageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
@@ -15,9 +21,39 @@ export default function BETAwardsLanding({ params }: PageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
+  // 1. Check authentication first
   useEffect(() => {
-    // Fetch session info by PIN
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (!res.ok) {
+          // Not logged in — redirect to landing/login
+          router.push(`/profile?redirect=/bet-awards/${resolvedParams.pin}`);
+          return;
+        }
+        const data = await res.json();
+        if (!data.authenticated) {
+          router.push(`/profile?redirect=/bet-awards/${resolvedParams.pin}`);
+          return;
+        }
+        setAuthUser(data.user);
+        // Pre-fill name from logged-in user
+        setPlayerName(data.user.name || '');
+      } catch {
+        router.push(`/landing?redirect=/bet-awards/${resolvedParams.pin}`);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    checkAuth();
+  }, [resolvedParams.pin, router]);
+
+  // 2. Fetch session info by PIN
+  useEffect(() => {
+    if (authLoading) return;
     const fetchRoomInfo = async () => {
       try {
         const response = await fetch(`/api/sessions/by-code/${resolvedParams.pin}`);
@@ -27,13 +63,12 @@ export default function BETAwardsLanding({ params }: PageProps) {
         } else {
           setError('Room not found. Please check the PIN and try again.');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load room information');
       }
     };
-
     fetchRoomInfo();
-  }, [resolvedParams.pin]);
+  }, [resolvedParams.pin, authLoading]);
 
   const handleJoinGame = async () => {
     if (!playerName.trim()) {
@@ -45,25 +80,52 @@ export default function BETAwardsLanding({ params }: PageProps) {
     setError('');
 
     try {
-      // Store session and voter info in localStorage
       localStorage.setItem('currentSession', JSON.stringify(roomInfo));
       localStorage.setItem('voterName', playerName);
-
-      // Also keep participant-compatible shape for /vote page
       localStorage.setItem('participant', JSON.stringify({
         id: roomInfo.id,
         name: playerName,
         hasVoted: false
       }));
 
-      // Redirect to voting page
+      // Save to session history
+      const historyData = localStorage.getItem('sessionHistory');
+      let history: any[] = [];
+      try { history = historyData ? JSON.parse(historyData) : []; } catch {}
+      const sessionEntry = {
+        code: resolvedParams.pin,
+        name: roomInfo.name || 'BET Awards',
+        createdAt: new Date().toISOString(),
+        status: roomInfo.status || 'active',
+        role: 'participant' as const
+      };
+      const existingIndex = history.findIndex((h: any) => h.code === sessionEntry.code);
+      if (existingIndex >= 0) history[existingIndex] = sessionEntry;
+      else history.unshift(sessionEntry);
+      localStorage.setItem('sessionHistory', JSON.stringify(history.slice(0, 50)));
+
       router.push(`/bet-awards/${resolvedParams.pin}/vote`);
-    } catch (err) {
+    } catch {
       setError('Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Show nothing while checking auth
+  if (authLoading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)', fontFamily: "'Quicksand', sans-serif" }}
+      >
+        <div className="text-center">
+          <Image src="/podium.gif" alt="Loading" width={100} height={100} unoptimized className="object-contain mx-auto mb-4" />
+          <p className="text-gray-600 font-semibold">Checking your account…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -75,12 +137,25 @@ export default function BETAwardsLanding({ params }: PageProps) {
     >
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
         <div className="text-center mb-8">
+          {/* Back button */}
+          <button
+            onClick={() => router.push('/bet-awards')}
+            className="text-gray-500 hover:text-gray-800 text-sm font-semibold inline-flex items-center gap-1 mb-4"
+          >
+            ← Back
+          </button>
+
           <div className="flex justify-center mb-4">
             <Image src="/podium.gif" alt="BET Awards" width={120} height={120} unoptimized className="object-contain" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             BET Awards
           </h1>
+          {authUser && (
+            <p className="text-sm text-gray-500">
+              Joining as <span className="font-bold text-teal-600">{authUser.name}</span>
+            </p>
+          )}
           {roomInfo && (
             <div className="mt-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border-2 border-yellow-200">
               <p className="font-bold text-gray-900 text-lg">{roomInfo.name}</p>
@@ -88,6 +163,7 @@ export default function BETAwardsLanding({ params }: PageProps) {
                 <p className="text-gray-600 text-sm mt-1">{roomInfo.description}</p>
               )}
               <p className="text-gray-500 text-xs mt-2">PIN: {resolvedParams.pin}</p>
+              <p className="text-gray-500 text-xs">Hosted by: {roomInfo.hostName}</p>
             </div>
           )}
         </div>
@@ -95,7 +171,7 @@ export default function BETAwardsLanding({ params }: PageProps) {
         {!roomInfo && !error && (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading room...</p>
+            <p className="text-gray-600 mt-4">Loading room…</p>
           </div>
         )}
 
@@ -110,7 +186,7 @@ export default function BETAwardsLanding({ params }: PageProps) {
             <div className="space-y-4 mb-6">
               <div>
                 <label htmlFor="playerName" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Enter Your Name
+                  Your Name
                 </label>
                 <input
                   type="text"
@@ -123,6 +199,7 @@ export default function BETAwardsLanding({ params }: PageProps) {
                   autoComplete="off"
                   autoFocus
                 />
+                <p className="text-xs text-gray-400 mt-1">Pre-filled from your account — edit if needed</p>
               </div>
             </div>
 
@@ -144,10 +221,6 @@ export default function BETAwardsLanding({ params }: PageProps) {
             >
               {loading ? 'Joining...' : 'Join Game'}
             </button>
-
-            <p className="text-center text-gray-500 text-sm mt-4">
-              No login required to play
-            </p>
           </>
         )}
       </div>

@@ -1,0 +1,21 @@
+services:
+  bet-awards:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bet-awards-app
+    ports:
+      - "3001:3000"         # tamashani owns 3000; bet-awards uses 3001
+    environment:
+      - NODE_ENV=production
+      # Points to tamashani's MongoDB container via shared network
+      - MONGODB_URI=mongodb://admin:tamashani_mongo_2025@mongodb:27017/bet-awards?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    restart: unless-stopped
+    networks:
+      - tamashani-network   # join tamashani's existing network to reach `mongodb`
+
+networks:
+  tamashani-network:
+    external: true          # owned by tamashani's compose — must be running first

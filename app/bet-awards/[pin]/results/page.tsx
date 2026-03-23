@@ -55,18 +55,18 @@ export default function BETAwardsResults({ params }: PageProps) {
 
   const fetchResults = async () => {
     try {
-      // Fetch room info
-      const roomResponse = await fetch(`/api/rooms/by-code/${resolvedParams.pin}`);
-      if (!roomResponse.ok) {
-        setError('Room not found');
+      // Fetch session info by PIN
+      const sessResponse = await fetch(`/api/sessions/by-code/${resolvedParams.pin}`);
+      if (!sessResponse.ok) {
+        setError('Session not found. Please check the PIN and try again.');
         setLoading(false);
         return;
       }
-      const roomData = await roomResponse.json();
-      setRoomInfo(roomData.room);
+      const sessData = await sessResponse.json();
+      setRoomInfo(sessData.session);
 
-      // Fetch results
-      const resultsResponse = await fetch(`/api/bet-awards/${roomData.room.id}/results`);
+      // Fetch results using session ID
+      const resultsResponse = await fetch(`/api/sessions/${sessData.session.id}/results`);
       if (resultsResponse.ok) {
         const resultsData = await resultsResponse.json();
         setResults(resultsData.results || []);
@@ -136,10 +136,10 @@ export default function BETAwardsResults({ params }: PageProps) {
         {results.length > 0 && (
           <div className="mt-8 flex justify-center gap-4">
             <button
-              onClick={() => router.push(`/room/${roomInfo?.id}/lobby`)}
+              onClick={() => router.push(`/bet-awards/${resolvedParams.pin}`)}
               className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
             >
-              Back to Lobby
+              ← Back
             </button>
             <button
               onClick={fetchResults}
