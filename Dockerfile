@@ -10,14 +10,11 @@ RUN npm ci
 # Copy source and build
 COPY . .
 
-ARG MONGODB_URI
-ARG JWT_SECRET
-ARG NEXTAUTH_SECRET
-
-ENV MONGODB_URI=$MONGODB_URI
-ENV JWT_SECRET=$JWT_SECRET
-ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 ENV NEXT_TELEMETRY_DISABLED=1
+# Set dummy values for build - real values will be provided at runtime
+ENV MONGODB_URI=mongodb://localhost:27017/partyspace
+ENV JWT_SECRET=dummy_build_secret
+ENV NEXTAUTH_SECRET=dummy_build_secret
 
 RUN npm run build
 

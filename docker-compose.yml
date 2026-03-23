@@ -1,21 +1,45 @@
 services:
+  mongodb:
+    image: mongo:latest
+    container_name: partyspace-mongodb
+    ports:
+      - "27018:27017"       # Use 27018 to avoid conflicts
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=partyspace_mongo_2025
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    networks:
+      - partyspace-network
+      - tamashani-network
+
   partyspace:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: partyspace-app
     ports:
-      - "3001:3000"         # tamashani owns 3000; partyspace uses 3001
+      - "3001:3000"         # partyspace uses 3001
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
-      # Points to tamashani's MongoDB container via shared network
-      - MONGODB_URI=mongodb://admin:tamashani_mongo_2025@mongodb:27017/partyspace?authSource=admin
+      - MONGODB_URI=mongodb://admin:partyspace_mongo_2025@mongodb:27017/partyspace?authSource=admin
       - JWT_SECRET=1f6c0e5be099ec712c23db0ee9a082fcc209cdaf145437f1fe951817da017359
       - NEXTAUTH_SECRET=37e7a96618537acc2ab752fc7e3ae766609164b688ed17d4162976366925df8c
+    depends_on:
+      - mongodb
     restart: unless-stopped
     networks:
-      - tamashani-network   # join tamashani's existing network to reach `mongodb`
+      - partyspace-network
+      - tamashani-network   # join tamashani's existing network to reach other services
+
+volumes:
+  mongodb_data:
 
 networks:
+  partyspace-network:
+    driver: bridge
   tamashani-network:
     external: true          # owned by tamashani's compose — must be running first
