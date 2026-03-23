@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Award from '@/models/Award';
+import Vote from '@/models/Vote';
 
 export async function PATCH(
   request: Request,
@@ -38,6 +39,10 @@ export async function PATCH(
       );
     }
 
+    // Clear all existing votes for this award so voters can vote again
+    // with the updated nominee list
+    await Vote.deleteMany({ awardId });
+
     return NextResponse.json({
       success: true,
       award
@@ -71,6 +76,9 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Clean up votes for the deleted award
+    await Vote.deleteMany({ awardId });
 
     return NextResponse.json({
       success: true,
