@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     // Get all awards for this room
-    const awards = await Award.find({ roomId }).sort({ order: 1 });
+    const awards = await Award.find({ sessionId: roomId }).sort({ order: 1 });
 
     const updates: any[] = [];
 

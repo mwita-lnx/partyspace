@@ -132,3 +132,20 @@ body {
 .progress-pulse {
   animation: progress-pulse 0.5s ease-in-out;
 }
+
+/* Vote page: confetti fall */
+@keyframes fall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Vote page: loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Vote page: trophy bounce */
+@keyframes bounce {
+  from { transform: translateY(0) scale(1); }
+  to   { transform: translateY(-16px) scale(1.08); }
+}

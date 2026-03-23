@@ -49,7 +49,15 @@ export default function PlayPage() {
       return;
     }
 
-    setCurrentUser(JSON.parse(participantData));
+    const user = JSON.parse(participantData);
+    setCurrentUser(user);
+
+    // If user is host, redirect to leaderboard to see live results instead of playing
+    if (user?.isHost) {
+      router.push(`/room/${roomId}/leaderboard`);
+      return;
+    }
+
     fetchGameData();
 
     // Poll for room status changes
@@ -67,6 +75,9 @@ export default function PlayPage() {
         // Games handle their own navigation
         // This message is just for notification purposes
         console.log('Game completed:', event.data);
+      } else if (event.data.type === 'NAVIGATE_TO_RESULTS') {
+        // Navigate to leaderboard/results page
+        router.push(`/room/${roomId}/leaderboard`);
       }
     };
 
@@ -250,8 +261,25 @@ export default function PlayPage() {
       return `/games/tap-battle.html?${baseParams.toString()}`;
     }
 
-    // For question-based games
-    return `/games/vote-question.html?${baseParams.toString()}`;
+    // For question-based games, route to specific game HTML files
+    const gameTypeMap: { [key: string]: string } = {
+      'bet-awards': '/games/bet-awards.html',
+      'most-likely-to': '/games/most-likely-to.html',
+      'would-you-rather': '/games/would-you-rather.html',
+      'hot-takes': '/games/hot-takes.html',
+      'this-or-that': '/games/this-or-that.html',
+      'pop-culture-trivia': '/games/pop-culture-trivia.html',
+      'speed-trivia': '/games/speed-trivia.html'
+    };
+
+    // Check if room has a specific game type
+    const gameFile = gameTypeMap[room.gameType || ''];
+    if (gameFile) {
+      return `${gameFile}?${baseParams.toString()}`;
+    }
+
+    // Fallback to generic voting game
+    return `/games/voting-game.html?${baseParams.toString()}`;
   };
 
   return (

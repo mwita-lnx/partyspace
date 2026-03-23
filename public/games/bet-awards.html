@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 700px;
+            width: 100%;
+        }
+
+        @media (min-width: 640px) {
+            .game-container {
+                border-radius: 20px;
+                padding: 30px;
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2C3E50;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        @media (min-width: 640px) {
+            h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .description {
+            font-size: 0.9rem;
+            color: #7F8C8D;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        @media (min-width: 640px) {
+            .description {
+                font-size: 1.1rem;
+            }
+        }
+
+        .timer {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #FF6B6B, #FF8C42);
+            color: white;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            min-width: 80px;
+        }
+
+        @media (min-width: 640px) {
+            .timer {
+                padding: 15px 30px;
+                font-size: 2rem;
+                min-width: 100px;
+            }
+        }
+
+        .timer.warning {
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2C3E50;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #F8F9FA;
+            border-radius: 15px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        @media (min-width: 640px) {
+            .question-text {
+                font-size: 1.6rem;
+                margin: 30px 0;
+                padding: 20px;
+            }
+        }
+
+        .options-container {
+            margin: 30px 0;
+        }
+
+        .option-btn {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            color: #2C3E50;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1.3;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        @media (min-width: 640px) {
+            .option-btn {
+                padding: 18px;
+                margin-bottom: 15px;
+                font-size: 1.2rem;
+                border: 3px solid #E0E0E0;
+                border-radius: 15px;
+                gap: 15px;
+            }
+        }
+
+        .option-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            border-color: #4ECDC4;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .option-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .option-btn.selected {
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A8AC 100%);
+            color: white;
+            border-color: #4ECDC4;
+        }
+
+        .option-btn.correct {
+            background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
+            color: white;
+            border-color: #2ECC71;
+        }
+
+        .option-btn.wrong {
+            background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
+            color: white;
+            border-color: #E74C3C;
+        }
+
+        .option-letter {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 640px) {
+            .option-letter {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+        }
+
+        .option-btn.selected .option-letter,
+        .option-btn.correct .option-letter,
+        .option-btn.wrong .option-letter {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .feedback-area {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 700;
+            display: none;
+        }
+
+        @media (min-width: 640px) {
+            .feedback-area {
+                margin-top: 20px;
+                padding: 20px;
+                border-radius: 15px;
+                font-size: 1.3rem;
+            }
+        }
+
+        .feedback-area.show {
+            display: block;
+        }
+
+        .feedback-area.correct {
+            background: #D5F5E3;
+            color: #27AE60;
+        }
+
+        .feedback-area.wrong {
+            background: #FADBD8;
+            color: #C0392B;
+        }
+
+        .feedback-area.voted {
+            background: #D6EAF8;
+            color: #2980B9;
+        }
+
+        .game-over {
+            display: none;
+            text-align: center;
+        }
+
+        .game-over.show {
+            display: block;
+        }
+
+        .game-over h2 {
+            font-size: 2.5rem;
+            color: #2C3E50;
+            margin-bottom: 20px;
+        }
+
+        .game-over .message {
+            font-size: 1.5rem;
+            color: #7F8C8D;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Admin/Settings View -->
+    <div class="game-container" id="admin-view" style="display: none; max-width: 900px;">
+        <div class="header">
+            <h1>⚙️ Edit Questions</h1>
+            <p class="description">Manage and edit questions for this room</p>
+        </div>
+
+        <div style="padding: 20px;">
+            <div style="margin-bottom: 20px;">
+                <button onclick="addNewQuestion()"
+                        style="padding: 12px 24px; background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; font-family: 'Quicksand', sans-serif;">
+                    ➕ Add New Question
+                </button>
+            </div>
+
+            <div id="questions-loading" style="text-align: center; padding: 40px; color: #7F8C8D;">
+                <p>Loading questions...</p>
+            </div>
+
+            <div id="questions-list" style="display: none;">
+                <!-- Questions will be dynamically inserted here -->
+            </div>
+
+            <div id="no-questions" style="display: none; text-align: center; padding: 40px; background: #f8f9fa; border-radius: 15px;">
+                <p style="color: #7F8C8D; font-size: 1.2rem;">No questions found for this room</p>
+                <p style="color: #95A5A6; margin-top: 10px;">Questions should be initialized when the room is created</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Play View -->
+    <div class="game-container" id="play-view">
+        <div class="header">
+            <h1 id="title">Question</h1>
+            <p class="description" id="description">Choose your answer</p>
+            <div class="timer" id="timer" style="display: none;">30</div>
+        </div>
+
+        <div id="game-content">
+            <div class="question-text" id="question-text">
+                Loading question...
+            </div>
+
+            <div class="options-container" id="options-container"></div>
+
+            <div class="feedback-area" id="feedback"></div>
+        </div>
+
+        <div class="game-over" id="game-over">
+            <h2>Answer Submitted!</h2>
+            <p class="message">Moving to next question...</p>
+        </div>
+    </div>
+
+    <!-- Results View -->
+    <div class="game-container" id="results-view" style="display: none;">
+        <div class="header">
+            <h1>🎉 Game Complete!</h1>
+            <p class="description">Waiting for results...</p>
+        </div>
+        <div style="text-align: center; padding: 40px;">
+            <p style="font-size: 1.2rem; color: #7F8C8D; margin-bottom: 20px;">All questions completed!</p>
+            <p style="font-size: 1rem; color: #95A5A6;">The host will show the final results soon.</p>
+        </div>
+    </div>
+
+    <script>
+        // Get query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode'); // 'admin' for preview mode
+        const roomId = urlParams.get('roomId');
+        const participantId = urlParams.get('participantId');
+        const awardId = urlParams.get('awardId');
+        let timeLimit = parseInt(urlParams.get('timeLimit')) || 0;
+        let title = urlParams.get('title') || 'Voting Question';
+        let description = urlParams.get('description') || 'Vote for a participant';
+        const correctAnswer = null; // Voting games don't have correct answers
+
+        // Check if we're in admin/preview mode
+        const isAdminMode = mode === 'admin' || urlParams.get('admin') === 'true';
+
+        // Show appropriate view based on mode
+        if (isAdminMode) {
+            document.getElementById('admin-view').style.display = 'block';
+            document.getElementById('play-view').style.display = 'none';
+
+            // Initialize admin controls
+            initAdminControls();
+
+            // Stop here - don't initialize game
+        } else {
+            document.getElementById('admin-view').style.display = 'none';
+            document.getElementById('play-view').style.display = 'block';
+        }
+
+        // Admin controls initialization
+        async function initAdminControls() {
+            const loadingEl = document.getElementById('questions-loading');
+            const questionsListEl = document.getElementById('questions-list');
+            const noQuestionsEl = document.getElementById('no-questions');
+
+            if (!roomId) {
+                loadingEl.style.display = 'none';
+                noQuestionsEl.style.display = 'block';
+                noQuestionsEl.innerHTML = '<p style="color: #E74C3C; font-size: 1.2rem;">Error: No room ID provided</p>';
+                return;
+            }
+
+            try {
+                // Fetch all questions for this room
+                const response = await fetch(`/api/rooms/${roomId}/awards`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch questions');
+                }
+
+                const data = await response.json();
+                const questions = data.awards || [];
+
+                loadingEl.style.display = 'none';
+
+                if (questions.length === 0) {
+                    noQuestionsEl.style.display = 'block';
+                } else {
+                    questionsListEl.style.display = 'block';
+                    renderQuestions(questions);
+                }
+            } catch (error) {
+                console.error('Error loading questions:', error);
+                loadingEl.style.display = 'none';
+                noQuestionsEl.style.display = 'block';
+                noQuestionsEl.innerHTML = '<p style="color: #E74C3C; font-size: 1.2rem;">Error loading questions</p>';
+            }
+        }
+
+        function renderQuestions(questions) {
+            const questionsListEl = document.getElementById('questions-list');
+            questionsListEl.innerHTML = '';
+
+            questions.forEach((question, index) => {
+                const questionCard = document.createElement('div');
+                questionCard.style.cssText = 'background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 2px solid #E0E0E0;';
+                questionCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <h3 style="color: #2C3E50; font-size: 1.3rem; margin: 0;">
+                            ${question.emoji || '📊'} Question ${index + 1}
+                        </h3>
+                        <span style="background: #667EEA; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem;">
+                            ${question.type || 'voting'}
+                        </span>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; color: #555; margin-bottom: 8px; font-size: 0.9rem;">
+                            Title
+                        </label>
+                        <input type="text" id="title-${question._id}" value="${question.title || ''}"
+                               style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; font-family: 'Quicksand', sans-serif;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; color: #555; margin-bottom: 8px; font-size: 0.9rem;">
+                            Description
+                        </label>
+                        <textarea id="description-${question._id}"
+                                  style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; font-family: 'Quicksand', sans-serif; min-height: 60px; resize: vertical;">${question.description || ''}</textarea>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; color: #555; margin-bottom: 8px; font-size: 0.9rem;">
+                            Time Limit: <span id="time-display-${question._id}">${question.timeLimit || 30}</span> seconds (0 = unlimited)
+                        </label>
+                        <input type="range" id="time-${question._id}" min="0" max="120" value="${question.timeLimit || 30}" step="5"
+                               style="width: 100%; height: 8px; border-radius: 5px; background: #ddd;"
+                               oninput="document.getElementById('time-display-${question._id}').textContent = this.value">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: space-between;">
+                        <button onclick="deleteQuestion('${question._id}')"
+                                style="padding: 12px 24px; background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; font-family: 'Quicksand', sans-serif;">
+                            🗑️ Delete
+                        </button>
+                        <button onclick="saveQuestion('${question._id}')"
+                                style="padding: 12px 24px; background: linear-gradient(135deg, #4ECDC4 0%, #44A8AC 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; font-family: 'Quicksand', sans-serif;">
+                            💾 Save Changes
+                        </button>
+                    </div>
+
+                    <div id="status-${question._id}" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none; text-align: center; font-weight: 600;"></div>
+                `;
+                questionsListEl.appendChild(questionCard);
+            });
+        }
+
+        async function saveQuestion(questionId) {
+            const titleEl = document.getElementById(`title-${questionId}`);
+            const descriptionEl = document.getElementById(`description-${questionId}`);
+            const timeEl = document.getElementById(`time-${questionId}`);
+            const statusEl = document.getElementById(`status-${questionId}`);
+
+            const updatedQuestion = {
+                title: titleEl.value,
+                description: descriptionEl.value,
+                timeLimit: parseInt(timeEl.value)
+            };
+
+            try {
+                const response = await fetch(`/api/rooms/${roomId}/awards/${questionId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedQuestion)
+                });
+
+                if (response.ok) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.background = '#D5F5E3';
+                    statusEl.style.color = '#27AE60';
+                    statusEl.textContent = '✓ Saved successfully!';
+
+                    setTimeout(() => {
+                        statusEl.style.display = 'none';
+                    }, 3000);
+                } else {
+                    throw new Error('Failed to save');
+                }
+            } catch (error) {
+                console.error('Error saving question:', error);
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#FADBD8';
+                statusEl.style.color = '#C0392B';
+                statusEl.textContent = '✗ Error saving changes';
+
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        async function deleteQuestion(questionId) {
+            if (!confirm('Are you sure you want to delete this question?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/rooms/${roomId}/awards/${questionId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    // Reload the questions list
+                    initAdminControls();
+                } else {
+                    alert('Failed to delete question');
+                }
+            } catch (error) {
+                console.error('Error deleting question:', error);
+                alert('Error deleting question');
+            }
+        }
+
+        async function addNewQuestion() {
+            const newQuestion = {
+                title: 'New Question',
+                description: 'Enter question description',
+                emoji: '📊',
+                type: 'voting',
+                timeLimit: 30
+            };
+
+            try {
+                const response = await fetch(`/api/rooms/${roomId}/awards`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newQuestion)
+                });
+
+                if (response.ok) {
+                    // Reload the questions list
+                    initAdminControls();
+                } else {
+                    alert('Failed to add question');
+                }
+            } catch (error) {
+                console.error('Error adding question:', error);
+                alert('Error adding question');
+            }
+        }
+
+        // Don't continue with game initialization if in admin mode
+        if (!isAdminMode) {
+            // Parse challenges from URL params
+            const challengesJson = urlParams.get('challenges');
+            let challenges = [];
+
+            if (challengesJson) {
+                try {
+                    challenges = JSON.parse(decodeURIComponent(challengesJson));
+                } catch (error) {
+                    console.error('Failed to parse challenges:', error);
+                }
+            }
+
+            if (challenges.length === 0) {
+                document.getElementById('question-text').textContent = 'No questions available';
+            } else {
+                let currentQuestionIndex = 0;
+                let currentChallenge = challenges[currentQuestionIndex];
+                let timeLeft = 0;
+                let timeLimit = 0;
+                let gameActive = true;
+                let selectedAnswer = null;
+                let answered = false;
+
+                function loadQuestion() {
+                    currentChallenge = challenges[currentQuestionIndex];
+
+                    // Reset state
+                    answered = false;
+                    selectedAnswer = null;
+                    gameActive = true;
+
+                    // Update UI
+                    document.getElementById('title').textContent = currentChallenge.title;
+                    document.getElementById('description').textContent = currentChallenge.description || '';
+                    document.getElementById('question-text').textContent = currentChallenge.title;
+
+                    // Clear previous options and feedback
+                    const optionsContainer = document.getElementById('options-container');
+                    optionsContainer.innerHTML = '';
+                    const feedbackEl = document.getElementById('feedback');
+                    feedbackEl.className = 'feedback-area';
+                    feedbackEl.style.display = 'none';
+
+                    // Get options
+                    let options = currentChallenge.options || [];
+
+                    // Display options
+                    options.forEach((option, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'option-btn';
+                        btn.innerHTML = `
+                            <div class="option-letter">${String.fromCharCode(65 + index)}</div>
+                            <span>${option}</span>
+                        `;
+                        btn.addEventListener('click', () => handleAnswer(option));
+                        optionsContainer.appendChild(btn);
+                    });
+
+                    // Setup timer if needed
+                    timeLimit = currentChallenge.timeLimit || 0;
+                    const timerElement = document.getElementById('timer');
+
+                    if (timeLimit > 0) {
+                        timeLeft = timeLimit;
+                        timerElement.style.display = 'inline-block';
+                        timerElement.textContent = timeLeft;
+                        timerElement.classList.remove('warning');
+
+                        if (window.timerInterval) clearInterval(window.timerInterval);
+
+                        window.timerInterval = setInterval(() => {
+                            if (timeLeft > 0 && gameActive && !answered) {
+                                timeLeft--;
+                                timerElement.textContent = timeLeft;
+
+                                if (timeLeft <= 10) {
+                                    timerElement.classList.add('warning');
+                                }
+                            } else if (timeLeft === 0 && !answered) {
+                                clearInterval(window.timerInterval);
+                                handleTimeout();
+                            }
+                        }, 1000);
+                    } else {
+                        timerElement.style.display = 'none';
+                    }
+                }
+
+                function handleAnswer(answer) {
+                    if (answered || !gameActive) return;
+
+                    answered = true;
+                    selectedAnswer = answer;
+
+                    // Stop timer
+                    if (window.timerInterval) clearInterval(window.timerInterval);
+
+                    // Visual feedback
+                    const buttons = document.querySelectorAll('.option-btn');
+                    buttons.forEach(btn => {
+                        btn.disabled = true;
+                        const btnText = btn.querySelector('span').textContent;
+
+                        if (btnText === answer) {
+                            btn.classList.add('selected');
+                        }
+                    });
+
+                    // Show feedback
+                    const feedback = document.getElementById('feedback');
+                    feedback.className = 'feedback-area voted show';
+                    feedback.textContent = 'Vote recorded!';
+
+                    // Submit answer
+                    submitAnswer();
+                }
+
+                function handleTimeout() {
+                    answered = true;
+                    gameActive = false;
+
+                    const feedback = document.getElementById('feedback');
+                    feedback.className = 'feedback-area wrong show';
+                    feedback.textContent = "Time's up!";
+
+                    setTimeout(() => {
+                        moveToNextQuestion();
+                    }, 2000);
+                }
+
+                async function submitAnswer() {
+                    try {
+                        const response = await fetch(`/api/rooms/${roomId}/votes`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                participantId: participantId,
+                                awardId: currentChallenge.id,
+                                nominee: selectedAnswer,
+                                answer: selectedAnswer,
+                                timeSpent: timeLimit > 0 ? timeLimit - timeLeft : 0,
+                                isCorrect: undefined
+                            })
+                        });
+
+                        if (response.ok) {
+                            console.log('Answer saved successfully');
+                        } else {
+                            console.error('Failed to save answer');
+                        }
+                    } catch (error) {
+                        console.error('Error saving answer:', error);
+                    }
+
+                    // Move to next question after delay
+                    setTimeout(() => {
+                        moveToNextQuestion();
+                    }, 2000);
+                }
+
+                function moveToNextQuestion() {
+                    currentQuestionIndex++;
+
+                    if (currentQuestionIndex < challenges.length) {
+                        // Load next question
+                        loadQuestion();
+                    } else {
+                        // All questions completed - show results view
+                        document.getElementById('play-view').style.display = 'none';
+                        document.getElementById('results-view').style.display = 'block';
+
+                        // Notify parent that game is complete
+                        window.parent.postMessage({
+                            type: 'GAME_COMPLETE',
+                            totalQuestions: challenges.length
+                        }, '*');
+
+                        // After 3 seconds, navigate to leaderboard
+                        setTimeout(() => {
+                            window.parent.postMessage({
+                                type: 'NAVIGATE_TO_RESULTS'
+                            }, '*');
+                        }, 3000);
+                    }
+                }
+
+                // Load first question
+                loadQuestion();
+            }
+        } // End of if (!isAdminMode)
+    </script>
+</body>
+</html>

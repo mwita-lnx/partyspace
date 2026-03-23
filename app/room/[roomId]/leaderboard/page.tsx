@@ -50,6 +50,13 @@ export default function LeaderboardPage() {
 
     setCurrentUser(JSON.parse(participantData));
     fetchLeaderboard();
+
+    // Poll for live updates every 3 seconds
+    const interval = setInterval(() => {
+      fetchLeaderboard();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [roomId]);
 
   useEffect(() => {

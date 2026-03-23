@@ -1,28 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Participant from '@/models/Participant';
+import connectDB from '@/lib/mongodb';
+import User from '@/models/User';
+import { createSession } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
-    const { code } = await request.json();
+    await connectDB();
+    const { email, password } = await request.json();
 
-    if (!code) {
-      return NextResponse.json({ error: 'Access code is required' }, { status: 400 });
+    // Validation
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
     }
 
-    const participant = await Participant.findOne({ code: code.toUpperCase() });
+    // Find user by email and include password field
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
 
-    if (!participant) {
-      return NextResponse.json({ error: 'Invalid access code' }, { status: 401 });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
     }
+
+    // Check if user has a password (might be OAuth user)
+    if (!user.password) {
+      return NextResponse.json(
+        { error: 'This account uses a different login method' },
+        { status: 401 }
+      );
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    // Create session
+    await createSession({
+      userId: user._id.toString(),
+      email: user.email,
+      name: user.name
+    });
 
     return NextResponse.json({
       success: true,
-      participant: {
-        id: participant._id,
-        name: participant.name,
-        hasVoted: participant.hasVoted
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt
       }
     });
   } catch (error) {

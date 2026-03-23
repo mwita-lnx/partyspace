@@ -1,8 +1,9 @@
 import mongoose, { Schema, Model } from 'mongoose';
 
 export interface IVote {
-  roomId: mongoose.Types.ObjectId;
-  participantId: mongoose.Types.ObjectId;
+  sessionId: mongoose.Types.ObjectId;
+  voterName: string; // Anonymous voter name
+  voterEmail?: string; // Optional email if they logged in
   awardId: mongoose.Types.ObjectId;
   nominee: string; // For voting type (participant name)
   answer?: string; // For multiple-choice, true-false, open-ended
@@ -12,8 +13,9 @@ export interface IVote {
 }
 
 const VoteSchema = new Schema<IVote>({
-  roomId: { type: Schema.Types.ObjectId, ref: 'Room', required: true },
-  participantId: { type: Schema.Types.ObjectId, ref: 'Participant', required: true },
+  sessionId: { type: Schema.Types.ObjectId, ref: 'GameSession', required: true },
+  voterName: { type: String, required: true, trim: true },
+  voterEmail: { type: String, trim: true, lowercase: true },
   awardId: { type: Schema.Types.ObjectId, ref: 'Award', required: true },
   nominee: { type: String, trim: true },
   answer: { type: String, trim: true },
@@ -22,14 +24,14 @@ const VoteSchema = new Schema<IVote>({
   isCorrect: { type: Boolean }
 }, { timestamps: true });
 
-// Allow multiple votes per participant per award, but prevent duplicate votes for same nominee
-VoteSchema.index({ participantId: 1, awardId: 1, nominee: 1 }, { unique: true });
+// Allow one vote per person per award
+VoteSchema.index({ sessionId: 1, voterName: 1, awardId: 1 }, { unique: true });
 
-// Find votes by room for isolation
-VoteSchema.index({ roomId: 1 });
+// Find votes by session
+VoteSchema.index({ sessionId: 1 });
 
-// Find votes by award within a room
-VoteSchema.index({ roomId: 1, awardId: 1 });
+// Find votes by award within a session
+VoteSchema.index({ sessionId: 1, awardId: 1 });
 
 const Vote: Model<IVote> = mongoose.models.Vote || mongoose.model<IVote>('Vote', VoteSchema);
 

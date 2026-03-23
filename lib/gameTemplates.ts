@@ -2,8 +2,10 @@ export interface GameQuestion {
   title: string;
   description: string;
   emoji: string;
-  type?: 'voting' | 'multiple-choice' | 'ranking' | 'open-ended' | 'drawing' | 'photo-upload' | 'speed-challenge' | 'true-false';
+  type?: 'voting' | 'opinion' | 'trivia' | 'multiple-choice' | 'ranking' | 'open-ended' | 'drawing' | 'photo-upload' | 'speed-challenge' | 'true-false';
   timeLimit?: number; // in seconds
+  options?: string[]; // For multiple-choice and opinion questions
+  correctAnswer?: string; // For trivia questions
 }
 
 export interface GameTemplate {
@@ -32,12 +34,12 @@ export const GAME_TEMPLATES: Record<string, GameTemplate> = {
     maxPlayers: 100,
     duration: '15-20 min',
     questions: [
-      { title: 'Best Dressed', description: 'Who always shows up looking like a runway model?', emoji: '👔' },
-      { title: 'Class Clown', description: 'Who keeps everyone laughing?', emoji: '🤡' },
-      { title: 'Most Likely to Be Famous', description: 'Who will we see on TV one day?', emoji: '⭐' },
-      { title: 'Life of the Party', description: 'Who brings the energy to every gathering?', emoji: '🎉' },
-      { title: 'Most Athletic', description: 'Who dominates on the field?', emoji: '🏅' },
-      { title: 'Best Smile', description: 'Whose smile lights up the room?', emoji: '😁' }
+      { title: 'Best Dressed', description: 'Who always shows up looking like a runway model?', emoji: '👔', type: 'voting' },
+      { title: 'Class Clown', description: 'Who keeps everyone laughing?', emoji: '🤡', type: 'voting' },
+      { title: 'Most Likely to Be Famous', description: 'Who will we see on TV one day?', emoji: '⭐', type: 'voting' },
+      { title: 'Life of the Party', description: 'Who brings the energy to every gathering?', emoji: '🎉', type: 'voting' },
+      { title: 'Most Athletic', description: 'Who dominates on the field?', emoji: '🏅', type: 'voting' },
+      { title: 'Best Smile', description: 'Whose smile lights up the room?', emoji: '😁', type: 'voting' }
     ]
   },
   'superlatives': {

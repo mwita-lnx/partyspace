@@ -21,7 +21,7 @@ export async function GET(
     }
 
     // Get all awards for this room
-    const awards = await Award.find({ roomId })
+    const awards = await Award.find({ sessionId: roomId })
       .sort({ order: 1 })
       .select('title description emoji nominees order type timeLimit');
 
@@ -86,12 +86,12 @@ export async function POST(
     // Get current max order or use provided order
     let order = bodyOrder;
     if (order === undefined) {
-      const maxOrderAward = await Award.findOne({ roomId }).sort({ order: -1 });
+      const maxOrderAward = await Award.findOne({ sessionId: roomId }).sort({ order: -1 });
       order = maxOrderAward ? maxOrderAward.order + 1 : 0;
     }
 
     const award = await Award.create({
-      roomId,
+      sessionId: roomId,
       title,
       description,
       emoji,

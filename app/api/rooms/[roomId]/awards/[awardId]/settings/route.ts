@@ -93,3 +93,57 @@ export async function PUT(
     );
   }
 }
+
+/**
+ * PATCH /api/rooms/:roomId/awards/:awardId/settings
+ * Update nominees for a specific award
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ roomId: string; awardId: string }> }
+) {
+  try {
+    await connectDB();
+    const { roomId, awardId } = await params;
+    const body = await request.json();
+    const { nominees } = body;
+
+    if (!Array.isArray(nominees)) {
+      return NextResponse.json(
+        { error: 'Nominees must be an array' },
+        { status: 400 }
+      );
+    }
+
+    const award = await Award.findOneAndUpdate(
+      {
+        _id: awardId,
+        roomId: roomId
+      },
+      {
+        $set: { nominees }
+      },
+      { new: true }
+    );
+
+    if (!award) {
+      return NextResponse.json(
+        { error: 'Award not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      nominees: award.nominees,
+      message: 'Nominees updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update nominees error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update nominees' },
+      { status: 500 }
+    );
+  }
+}

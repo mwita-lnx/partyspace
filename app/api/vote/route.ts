@@ -6,22 +6,28 @@ import Participant from '@/models/Participant';
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    const { participantId, awardId, nominee } = await request.json();
+    const { sessionId, voterName, awardId, nominee, answer, ranking, timeSpent, isCorrect } = await request.json();
 
-    if (!participantId || !awardId || !nominee) {
+    if (!sessionId || !voterName || !awardId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check if already voted for this specific nominee in this award
-    const existingVote = await Vote.findOne({ participantId, awardId, nominee });
+    // Check if already voted for this award (one vote per person per award)
+    const existingVote = await Vote.findOne({ sessionId, voterName, awardId });
 
     if (existingVote) {
-      // Vote already exists for this nominee
-      return NextResponse.json({ success: true, message: 'Vote already recorded' });
+      // Update existing vote
+      if (nominee !== undefined) existingVote.nominee = nominee;
+      if (answer !== undefined) existingVote.answer = answer;
+      if (ranking !== undefined) existingVote.ranking = ranking;
+      if (timeSpent !== undefined) existingVote.timeSpent = timeSpent;
+      if (isCorrect !== undefined) existingVote.isCorrect = isCorrect;
+      await existingVote.save();
+      return NextResponse.json({ success: true, message: 'Vote updated' });
     }
 
-    // Create new vote (allows up to 3 per participant per award)
-    await Vote.create({ participantId, awardId, nominee });
+    // Create new vote
+    await Vote.create({ sessionId, voterName, awardId, nominee, answer, ranking, timeSpent, isCorrect });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -38,13 +44,14 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
     const searchParams = request.nextUrl.searchParams;
-    const participantId = searchParams.get('participantId');
+    const sessionId = searchParams.get('sessionId');
+    const voterName = searchParams.get('voterName');
 
-    if (!participantId) {
-      return NextResponse.json({ error: 'Participant ID required' }, { status: 400 });
+    if (!sessionId || !voterName) {
+      return NextResponse.json({ error: 'Session ID and voter name required' }, { status: 400 });
     }
 
-    const votes = await Vote.find({ participantId });
+    const votes = await Vote.find({ sessionId, voterName });
     return NextResponse.json({ votes });
   } catch (error) {
     console.error('Fetch votes error:', error);

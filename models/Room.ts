@@ -19,6 +19,7 @@ export interface IRoom extends Document {
   name: string;
   description?: string;
   hostId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId; // Optional: User who created the room (for auth)
   status: 'waiting' | 'active' | 'ended';
   settings: {
     allowLateJoin: boolean;
@@ -78,6 +79,11 @@ const RoomSchema = new Schema<IRoom>({
     type: Schema.Types.ObjectId,
     ref: 'Participant',
     required: true
+  },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
   },
   status: {
     type: String,

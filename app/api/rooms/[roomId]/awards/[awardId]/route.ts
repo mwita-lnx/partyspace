@@ -30,7 +30,7 @@ export async function PATCH(
     }
 
     // Find award and verify it belongs to this room
-    const award = await Award.findOne({ _id: awardId, roomId });
+    const award = await Award.findOne({ _id: awardId, sessionId: roomId });
     if (!award) {
       return NextResponse.json(
         { error: 'Award not found in this room' },
@@ -39,11 +39,12 @@ export async function PATCH(
     }
 
     // Update allowed fields
-    const { title, description, emoji, nominees } = body;
-    if (title) award.title = title;
-    if (description) award.description = description;
-    if (emoji) award.emoji = emoji;
-    if (nominees) award.nominees = nominees;
+    const { title, description, emoji, nominees, timeLimit } = body;
+    if (title !== undefined) award.title = title;
+    if (description !== undefined) award.description = description;
+    if (emoji !== undefined) award.emoji = emoji;
+    if (nominees !== undefined) award.nominees = nominees;
+    if (timeLimit !== undefined) award.timeLimit = timeLimit;
 
     await award.save();
 
@@ -55,7 +56,8 @@ export async function PATCH(
         description: award.description,
         emoji: award.emoji,
         nominees: award.nominees,
-        order: award.order
+        order: award.order,
+        timeLimit: award.timeLimit
       }
     });
 
@@ -94,7 +96,7 @@ export async function DELETE(
     }
 
     // Find and delete award (only if it belongs to this room)
-    const result = await Award.deleteOne({ _id: awardId, roomId });
+    const result = await Award.deleteOne({ _id: awardId, sessionId: roomId });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(
