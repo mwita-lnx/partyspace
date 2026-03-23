@@ -25,6 +25,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME=0.0.0.0
 
 # Only copy what's needed to run
 COPY --from=builder /app/public ./public
