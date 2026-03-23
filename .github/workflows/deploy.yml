@@ -21,23 +21,18 @@ jobs:
         SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
       run: |
-        sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'ENDSSH'
-
+        sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST '
           set -e
 
           echo "🚀 Starting PartySpace Deployment"
 
-          # ----------------------------------------------------
           # Navigate to home directory
-          # ----------------------------------------------------
           cd /home/ubuntu
 
-          # ----------------------------------------------------
           # Clone or update repository
-          # ----------------------------------------------------
           if [ ! -d "partyspace/.git" ]; then
             echo "📦 Cloning PartySpace repository..."
-            git clone https://$GITHUB_TOKEN@github.com/${{ github.repository }}.git partyspace
+            git clone https://'"$GITHUB_TOKEN"'@github.com/'"${{ github.repository }}"'.git partyspace
           else
             echo "🔄 Updating PartySpace repository..."
             cd /home/ubuntu/partyspace
@@ -45,26 +40,16 @@ jobs:
             git reset --hard origin/main
           fi
 
-          # ----------------------------------------------------
           # Navigate to app directory
-          # ----------------------------------------------------
           cd /home/ubuntu/partyspace
 
-          # ----------------------------------------------------
           # Fix permissions
-          # ----------------------------------------------------
           sudo chown -R ubuntu:ubuntu /home/ubuntu/partyspace
 
-          # ----------------------------------------------------
-          # Ensure tamashani-network exists (created by tamashani stack)
-          # If tamashani isn't running yet, create the network manually
-          # ----------------------------------------------------
-          docker network inspect tamashani-network >/dev/null 2>&1 || \
-            docker network create tamashani-network
+          # Ensure tamashani-network exists
+          docker network inspect tamashani-network >/dev/null 2>&1 || docker network create tamashani-network
 
-          # ----------------------------------------------------
           # ZERO-DOWNTIME DOCKER DEPLOYMENT
-          # ----------------------------------------------------
           echo "🐳 Building PartySpace container..."
           sudo docker compose build --no-cache
 
@@ -74,18 +59,13 @@ jobs:
           sudo docker builder prune -a -f
           sudo docker image prune -a -f
 
-          # ----------------------------------------------------
           # Show status
-          # ----------------------------------------------------
           echo "📊 Container status:"
           sudo docker compose ps
 
-          # ----------------------------------------------------
           # Cleanup unused images
-          # ----------------------------------------------------
           echo "🧹 Cleaning unused Docker images..."
           sudo docker image prune -f
 
           echo "✅ PartySpace deployment complete — NO DOWNTIME 🎉"
-
-        ENDSSH
+        '
