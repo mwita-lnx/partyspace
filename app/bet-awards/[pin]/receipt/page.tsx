@@ -85,7 +85,7 @@ export default function BETAwardsReceipt({ params }: PageProps) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: '#b8ad98', fontFamily: "'Courier Prime', 'Courier New', Courier, monospace" }}
+        style={{ background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)', fontFamily: "'Courier Prime', 'Courier New', Courier, monospace" }}
       >
         <div className="text-center">
           <Image src="/podium.gif" alt="Loading" width={100} height={100} unoptimized className="object-contain mx-auto mb-4" />
@@ -99,7 +99,7 @@ export default function BETAwardsReceipt({ params }: PageProps) {
     return (
       <div
         className="min-h-screen flex items-center justify-center p-4"
-        style={{ background: '#b8ad98', fontFamily: "'Courier Prime', 'Courier New', Courier, monospace" }}
+        style={{ background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)', fontFamily: "'Courier Prime', 'Courier New', Courier, monospace" }}
       >
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <p className="text-red-600 font-bold mb-4">{error || 'Session not found'}</p>
@@ -116,8 +116,8 @@ export default function BETAwardsReceipt({ params }: PageProps) {
 
   return (
     <div
-      className="min-h-screen p-4 print:p-0"
-      style={{ background: '#b8ad98', fontFamily: "'Courier Prime', 'Courier New', Courier, monospace" }}
+      className="min-h-screen p-4 print:p-0 flex items-center justify-center"
+      style={{ background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)', fontFamily: "'Courier Prime', 'Courier New', Courier, monospace" }}
     >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
@@ -395,12 +395,12 @@ export default function BETAwardsReceipt({ params }: PageProps) {
           body { background: white !important; }
           .receipt-shadow { filter: none !important; }
           .btn-row, .print\\:hidden { display: none !important; }
-          .page { max-width: 100% !important; transform: none !important; }
+          .page { max-width: 600px !important; transform: none !important; }
         }
       `}</style>
 
-      <div className="max-w-md mx-auto py-10 print:py-0">
-        <div className="page" style={{ width: '100%', maxWidth: '360px', transform: 'rotate(-0.6deg)', margin: '0 auto' }}>
+      <div className="w-full max-w-2xl mx-auto py-10 print:py-0">
+        <div className="page" style={{ width: '100%', maxWidth: '600px', transform: 'rotate(-0.6deg)', margin: '0 auto' }}>
           <div className="receipt-shadow">
             <div className="receipt-paper">
               <img
