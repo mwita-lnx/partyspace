@@ -94,8 +94,16 @@ export default function BETAwardsLanding({ params }: PageProps) {
       try { history = historyData ? JSON.parse(historyData) : []; } catch {}
 
       // Check if current user is the host
-      const isHost = authUser && roomInfo.hostUserId === authUser.userId;
+      const isHost = authUser && roomInfo.hostUserId &&
+                     (roomInfo.hostUserId.toString() === authUser.userId.toString());
       const userRole: 'host' | 'participant' = isHost ? 'host' : 'participant';
+
+      console.log('Role check:', {
+        roomInfoHostUserId: roomInfo.hostUserId,
+        authUserUserId: authUser?.userId,
+        isHost,
+        userRole
+      });
 
       const sessionEntry = {
         code: resolvedParams.pin,

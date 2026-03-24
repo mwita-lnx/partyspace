@@ -29,6 +29,7 @@ export async function GET(
         status: session.status,
         gameType: session.gameType,
         hostName: session.hostName,
+        hostUserId: session.hostUserId.toString(),
         settings: session.settings
       }
     });

@@ -82,6 +82,53 @@ export default function BETAwardsPage() {
     router.push(`/bet-awards/${code}/settings`);
   };
 
+  const handleDeleteSession = async (e: React.MouseEvent, code: string) => {
+    e.stopPropagation(); // don't trigger rejoin
+
+    if (!confirm('Remove this session from your history? This will not delete the session itself.')) {
+      return;
+    }
+
+    try {
+      // Try to delete from database first
+      const authRes = await fetch('/api/auth/session');
+      if (authRes.ok && (await authRes.json()).authenticated) {
+        const response = await fetch('/api/user/sessions/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionCode: code })
+        });
+
+        if (response.ok) {
+          // Remove from UI immediately
+          setSessions(prev => prev.filter(s => s.code !== code));
+          return;
+        }
+      }
+
+      // Fallback to localStorage if not authenticated or API fails
+      const historyData = localStorage.getItem('sessionHistory');
+      if (historyData) {
+        const history = JSON.parse(historyData);
+        const updated = history.filter((s: any) => s.code !== code);
+        localStorage.setItem('sessionHistory', JSON.stringify(updated));
+        setSessions(updated);
+      }
+    } catch (err) {
+      console.error('Error deleting session:', err);
+      // Try localStorage fallback
+      try {
+        const historyData = localStorage.getItem('sessionHistory');
+        if (historyData) {
+          const history = JSON.parse(historyData);
+          const updated = history.filter((s: any) => s.code !== code);
+          localStorage.setItem('sessionHistory', JSON.stringify(updated));
+          setSessions(updated);
+        }
+      } catch {}
+    }
+  };
+
   return (
     <div
       className="min-h-screen p-4"
@@ -202,6 +249,17 @@ export default function BETAwardsPage() {
                           <Image src="/magic-wand.png" alt="Edit" width={20} height={20} className="object-contain" />
                         </button>
                       )}
+
+                      {/* Delete icon — all roles */}
+                      <button
+                        onClick={(e) => handleDeleteSession(e, session.code)}
+                        title="Remove from history"
+                        className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
 
                       {/* Rejoin arrow — all roles */}
                       <span className="text-teal-600 font-bold text-lg">→</span>

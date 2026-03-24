@@ -108,6 +108,12 @@ export default function BETAwardsResults({ params }: PageProps) {
               Refresh
             </button>
             <button
+              onClick={() => router.push(`/bet-awards/${resolvedParams.pin}/receipt`)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors"
+            >
+              🧾 Receipt
+            </button>
+            <button
               onClick={handleCopyLink}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors text-white"
               style={{ background: copied ? '#22C55E' : 'linear-gradient(135deg, #4ECDC4, #45B7D1)' }}
