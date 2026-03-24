@@ -88,21 +88,43 @@ export default function BETAwardsLanding({ params }: PageProps) {
         hasVoted: false
       }));
 
-      // Save to session history
+      // Save to session history - determine role based on hostUserId
       const historyData = localStorage.getItem('sessionHistory');
       let history: any[] = [];
       try { history = historyData ? JSON.parse(historyData) : []; } catch {}
+
+      // Check if current user is the host
+      const isHost = authUser && roomInfo.hostUserId === authUser.userId;
+      const userRole: 'host' | 'participant' = isHost ? 'host' : 'participant';
+
       const sessionEntry = {
         code: resolvedParams.pin,
         name: roomInfo.name || 'BET Awards',
         createdAt: new Date().toISOString(),
         status: roomInfo.status || 'active',
-        role: 'participant' as const
+        role: userRole
       };
       const existingIndex = history.findIndex((h: any) => h.code === sessionEntry.code);
       if (existingIndex >= 0) history[existingIndex] = sessionEntry;
       else history.unshift(sessionEntry);
       localStorage.setItem('sessionHistory', JSON.stringify(history.slice(0, 50)));
+
+      // Save to database for persistent storage
+      try {
+        await fetch('/api/user/sessions/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionCode: resolvedParams.pin,
+            sessionName: roomInfo.name || 'BET Awards',
+            role: userRole,
+            sessionId: roomInfo._id || roomInfo.id
+          })
+        });
+      } catch (err) {
+        console.error('Failed to save session to database:', err);
+        // Continue anyway - localStorage still works
+      }
 
       router.push(`/bet-awards/${resolvedParams.pin}/vote`);
     } catch {

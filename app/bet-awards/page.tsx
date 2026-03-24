@@ -20,17 +20,43 @@ export default function BETAwardsPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<SessionHistory[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
 
   useEffect(() => {
     loadSessionHistory();
   }, []);
 
-  const loadSessionHistory = () => {
+  const loadSessionHistory = async () => {
     try {
-      const historyData = localStorage.getItem('sessionHistory');
-      if (historyData) setSessions(JSON.parse(historyData));
+      // First check if user is authenticated
+      const authRes = await fetch('/api/auth/session');
+      if (!authRes.ok || !(await authRes.json()).authenticated) {
+        // Not authenticated, try localStorage fallback
+        const historyData = localStorage.getItem('sessionHistory');
+        if (historyData) setSessions(JSON.parse(historyData));
+        setLoadingSessions(false);
+        return;
+      }
+
+      // Fetch from database
+      const response = await fetch('/api/user/sessions');
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data.sessions);
+      } else {
+        // Fallback to localStorage if API fails
+        const historyData = localStorage.getItem('sessionHistory');
+        if (historyData) setSessions(JSON.parse(historyData));
+      }
     } catch (err) {
       console.error('Error loading session history:', err);
+      // Fallback to localStorage on error
+      try {
+        const historyData = localStorage.getItem('sessionHistory');
+        if (historyData) setSessions(JSON.parse(historyData));
+      } catch {}
+    } finally {
+      setLoadingSessions(false);
     }
   };
 
@@ -121,8 +147,16 @@ export default function BETAwardsPage() {
           </button>
         </div>
 
+        {/* Loading State */}
+        {loadingSessions && (
+          <div className="max-w-3xl mx-auto text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="text-gray-600 mt-4">Loading your sessions...</p>
+          </div>
+        )}
+
         {/* Previous Sessions — shown for BOTH hosts and participants */}
-        {sessions.length > 0 && (
+        {!loadingSessions && sessions.length > 0 && (
           <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">My Previous Sessions</h2>
             <div className="space-y-3">
@@ -180,7 +214,7 @@ export default function BETAwardsPage() {
         )}
 
         {/* Empty State */}
-        {sessions.length === 0 && (
+        {!loadingSessions && sessions.length === 0 && (
           <div className="max-w-3xl mx-auto text-center py-12">
             <Image src="/magic-wand.png" alt="Get Started" width={80} height={80} className="mx-auto mb-4 object-contain" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">No Previous Sessions</h3>

@@ -147,6 +147,23 @@ export default function CreateBETAwards() {
         history = history.slice(0, 50);
         localStorage.setItem('sessionHistory', JSON.stringify(history));
 
+        // Save to database for persistent storage
+        try {
+          await fetch('/api/user/sessions/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionCode: data.session.code,
+              sessionName: data.session.name,
+              role: 'host',
+              sessionId: data.session.id || data.session._id
+            })
+          });
+        } catch (err) {
+          console.error('Failed to save session to database:', err);
+          // Continue anyway - localStorage still works
+        }
+
         // Celebration
         confetti({
           particleCount: 150,

@@ -215,6 +215,12 @@ function AwardCard({ award, index, onUpdateNominees, onDelete }: AwardCardProps)
   );
 }
 
+interface AuthUser {
+  userId: string;
+  email: string;
+  name: string;
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function BETAwardsSettings({ params }: PageProps) {
   const resolvedParams = use(params);
@@ -232,18 +238,55 @@ export default function BETAwardsSettings({ params }: PageProps) {
   const [newEmoji, setNewEmoji] = useState('🏆');
   const [dirty, setDirty] = useState(false);
   const [resettingVotes, setResettingVotes] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Check authentication and authorization
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (!res.ok) {
+          router.push(`/profile?redirect=/bet-awards/${resolvedParams.pin}/settings`);
+          return;
+        }
+        const data = await res.json();
+        if (!data.authenticated) {
+          router.push(`/profile?redirect=/bet-awards/${resolvedParams.pin}/settings`);
+          return;
+        }
+        setAuthUser(data.user);
+        setAuthChecked(true);
+      } catch {
+        router.push(`/landing?redirect=/bet-awards/${resolvedParams.pin}/settings`);
+      }
+    };
+    checkAuth();
+  }, [resolvedParams.pin, router]);
 
   const fetchData = useCallback(async () => {
+    if (!authChecked || !authUser) return;
+
     try {
       const sr = await fetch(`/api/sessions/by-code/${resolvedParams.pin}`);
       if (!sr.ok) { setError('Session not found.'); setLoading(false); return; }
       const sd = await sr.json();
+
+      // Check if user is the host
+      if (sd.session.hostUserId !== authUser.userId) {
+        setError('Access denied. Only the host can access settings.');
+        setLoading(false);
+        // Redirect to session page after 2 seconds
+        setTimeout(() => router.push(`/bet-awards/${resolvedParams.pin}`), 2000);
+        return;
+      }
+
       setSessionInfo(sd.session);
       const ar = await fetch(`/api/sessions/${sd.session.id}/awards`);
       if (ar.ok) setAwards((await ar.json()).awards || []);
       setLoading(false);
     } catch { setError('Failed to load session data'); setLoading(false); }
-  }, [resolvedParams.pin]);
+  }, [resolvedParams.pin, authChecked, authUser, router]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -303,11 +346,11 @@ export default function BETAwardsSettings({ params }: PageProps) {
   const awardsReady = awards.filter(a => a.nominees.length >= 2).length;
 
   // ── Loading ────────────────────────────────────────────────────────────────
-  if (loading) return (
+  if (!authChecked || loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)', fontFamily: "'Quicksand', sans-serif" }}>
       <div className="text-center">
         <Image src="/podium.gif" alt="Loading" width={100} height={100} unoptimized className="object-contain mx-auto mb-4" />
-        <p className="text-gray-700 font-semibold">Loading session…</p>
+        <p className="text-gray-700 font-semibold">{!authChecked ? 'Checking access…' : 'Loading session…'}</p>
       </div>
     </div>
   );
