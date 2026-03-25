@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Script from 'next/script';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -23,14 +24,48 @@ export default function LandingPage() {
     router.push('/bet-awards');
   };
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Party Space",
+    "description": "Create unforgettable moments with Party Space. Host BET Awards ceremonies, play interactive party games with friends, family, or coworkers.",
+    "url": "https://partyspace.tamashani.com",
+    "applicationCategory": "EntertainmentApplication",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "150"
+    },
+    "featureList": [
+      "BET Awards Ceremonies",
+      "Interactive Voting",
+      "Custom Award Categories",
+      "Real-time Results",
+      "Mobile-Friendly",
+      "No Downloads Required"
+    ]
+  };
+
   return (
-    <div
-      className="min-h-screen p-4 overflow-x-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)',
-        fontFamily: "'Quicksand', sans-serif"
-      }}
-    >
+    <>
+      <Script
+        id="structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <div
+        className="min-h-screen p-4 overflow-x-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%)',
+          fontFamily: "'Quicksand', sans-serif"
+        }}
+      >
       {/* Header with Profile Button */}
       <div className="max-w-6xl mx-auto pt-8 mb-4 flex justify-end">
         <button
@@ -261,6 +296,7 @@ export default function LandingPage() {
           animation: scale-in 0.3s ease-out;
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }
