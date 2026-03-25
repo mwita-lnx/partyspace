@@ -41,7 +41,7 @@ export default function BETAwardsResults({ params }: PageProps) {
       if (!sr.ok) { setError('Session not found. Please check the PIN.'); setLoading(false); return; }
       const sd = await sr.json();
       setSessionInfo(sd.session);
-      const rr = await fetch(`/api/sessions/${sd.session.id}/results`);
+      const rr = await fetch(`/api/bet-awards/sessions/${sd.session.id}/results`);
       if (rr.ok) setResults((await rr.json()).results || []);
       else setError('Could not load results.');
     } catch { setError('Connection error. Please try again.'); }

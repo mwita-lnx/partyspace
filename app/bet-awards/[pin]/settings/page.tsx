@@ -282,7 +282,7 @@ export default function BETAwardsSettings({ params }: PageProps) {
       }
 
       setSessionInfo(sd.session);
-      const ar = await fetch(`/api/sessions/${sd.session.id}/awards`);
+      const ar = await fetch(`/api/bet-awards/sessions/${sd.session.id}/awards`);
       if (ar.ok) setAwards((await ar.json()).awards || []);
       setLoading(false);
     } catch { setError('Failed to load session data'); setLoading(false); }
@@ -297,14 +297,14 @@ export default function BETAwardsSettings({ params }: PageProps) {
 
   const deleteAward = async (awardId: string) => {
     if (!confirm('Remove this award? This cannot be undone.')) return;
-    const res = await fetch(`/api/sessions/${sessionInfo.id}/awards/${awardId}`, { method: 'DELETE' });
+    const res = await fetch(`/api/bet-awards/sessions/${sessionInfo.id}/awards/${awardId}`, { method: 'DELETE' });
     if (res.ok) { showSuccess('Award removed.'); fetchData(); }
     else setError('Failed to delete award.');
   };
 
   const addAward = async () => {
     if (!newTitle.trim()) { setError('Title is required'); return; }
-    const res = await fetch(`/api/sessions/${sessionInfo.id}/awards`, {
+    const res = await fetch(`/api/bet-awards/sessions/${sessionInfo.id}/awards`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newTitle, description: newDesc || `Vote for ${newTitle}`, emoji: newEmoji, type: 'voting', timeLimit: 30, order: awards.length })
@@ -317,7 +317,7 @@ export default function BETAwardsSettings({ params }: PageProps) {
     setSaving(true); setError(''); setSuccess('');
     try {
       await Promise.all(awards.map(a =>
-        fetch(`/api/sessions/${sessionInfo.id}/awards/${a._id}`, {
+        fetch(`/api/bet-awards/sessions/${sessionInfo.id}/awards/${a._id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nominees: a.nominees })
@@ -335,9 +335,13 @@ export default function BETAwardsSettings({ params }: PageProps) {
     if (!confirm('Reset ALL votes for this session? Every voter will be able to vote again.')) return;
     setResettingVotes(true);
     try {
-      const res = await fetch(`/api/sessions/${sessionInfo.id}/reset-votes`, { method: 'DELETE' });
-      if (res.ok) showSuccess('All votes have been reset. Voters can vote again.');
-      else setError('Failed to reset votes.');
+      const res = await fetch(`/api/bet-awards/sessions/${sessionInfo.id}/reset-votes`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        showSuccess(`All votes have been reset. ${data.deletedCount} vote(s) deleted.`);
+      } else {
+        setError('Failed to reset votes.');
+      }
     } catch { setError('Failed to reset votes.'); }
     finally { setResettingVotes(false); }
   };

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import GameSession from '@/models/GameSession';
-import Award from '@/models/Award';
+import Award from '@/models/bet-awards/Award';
 import { getSession } from '@/lib/auth';
 import { getGameTemplate } from '@/lib/gameTemplates';
 

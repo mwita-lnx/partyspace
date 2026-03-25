@@ -33,6 +33,7 @@ export default function BETAwardsVotePage({ params }: PageProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [awards, setAwards] = useState<Award[]>([]);
   const [voterName, setVoterName] = useState('');
+  const [voterUserId, setVoterUserId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [votes, setVotes] = useState<Record<string, string>>({});
   // savedVotes = votes already persisted on the server (locked, cannot re-vote)
@@ -55,6 +56,27 @@ export default function BETAwardsVotePage({ params }: PageProps) {
 
     const init = async () => {
       try {
+        // Fetch authenticated user info (REQUIRED for BET Awards)
+        let userId: string | null = null;
+        try {
+          const authRes = await fetch('/api/auth/session');
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            if (authData.authenticated && authData.user) {
+              userId = authData.user.userId;
+              setVoterUserId(userId);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch auth session:', err);
+        }
+
+        if (!userId) {
+          setError('You must be logged in to vote. Please log in and try again.');
+          setLoading(false);
+          return;
+        }
+
         const sessRes = await fetch(`/api/sessions/by-code/${resolvedParams.pin}`);
         if (!sessRes.ok) {
           setError('Session not found. Please re-enter your PIN.');
@@ -66,8 +88,8 @@ export default function BETAwardsVotePage({ params }: PageProps) {
         setSession(sess);
 
         const [awardsRes, votesRes] = await Promise.all([
-          fetch(`/api/sessions/${sess.id}/awards`),
-          fetch(`/api/vote?sessionId=${sess.id}&voterName=${encodeURIComponent(name)}`),
+          fetch(`/api/bet-awards/sessions/${sess.id}/awards`),
+          fetch(`/api/bet-awards/vote?sessionId=${sess.id}&userId=${userId}`),
         ]);
 
         if (!awardsRes.ok) {
@@ -126,7 +148,7 @@ export default function BETAwardsVotePage({ params }: PageProps) {
   };
 
   const handleSubmit = async () => {
-    if (!session || submitting) return;
+    if (!session || submitting || !voterUserId) return;
     setSubmitting(true);
     try {
       // Only submit awards that haven't been saved yet
@@ -136,10 +158,16 @@ export default function BETAwardsVotePage({ params }: PageProps) {
 
       await Promise.all(
         pendingVotes.map(([awardId, nominee]) =>
-          fetch(`/api/sessions/${session.id}/vote`, {
+          fetch(`/api/bet-awards/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ voterName, awardId, nominee }),
+            body: JSON.stringify({
+              sessionId: session.id,
+              userId: voterUserId,
+              voterName,
+              awardId,
+              nominee
+            }),
           })
         )
       );

@@ -55,7 +55,7 @@ export default function BETAwardsReceipt({ params }: PageProps) {
         setSessionInfo(sessionData.session);
 
         // Fetch results
-        const resultsRes = await fetch(`/api/sessions/${sessionData.session.id}/results`);
+        const resultsRes = await fetch(`/api/bet-awards/sessions/${sessionData.session.id}/results`);
         if (!resultsRes.ok) {
           setError('Failed to load results');
           return;
