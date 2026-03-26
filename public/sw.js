@@ -1,4 +1,4 @@
-const CACHE_NAME = 'party-space-v1';
+const CACHE_NAME = 'party-space-v2';
 const urlsToCache = [
   '/',
   '/landing',
@@ -6,8 +6,18 @@ const urlsToCache = [
   '/bet-awards/create',
   '/profile',
   '/manifest.json',
+  '/icon-72.png',
+  '/icon-96.png',
+  '/icon-128.png',
+  '/icon-144.png',
+  '/icon-152.png',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-384.png',
+  '/icon-512.png',
+  '/icon-maskable-192.png',
+  '/icon-maskable-512.png',
+  '/apple-touch-icon.png',
+  '/favicon.ico'
 ];
 
 // Install service worker and cache resources
