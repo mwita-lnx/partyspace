@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Party Space</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #FFE5D9 0%, #D4F1F4 50%, #FFFACD 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+
+    .icon {
+      font-size: 120px;
+      margin-bottom: 20px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+
+    h1 {
+      font-size: 32px;
+      color: #333;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+
+    p {
+      font-size: 18px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .retry-button {
+      background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    }
+
+    .retry-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
+    }
+
+    .retry-button:active {
+      transform: translateY(0);
+    }
+
+    .tips {
+      margin-top: 40px;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .tips h2 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .tips ul {
+      text-align: left;
+      list-style: none;
+      color: #555;
+    }
+
+    .tips li {
+      margin-bottom: 8px;
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .tips li:before {
+      content: "•";
+      position: absolute;
+      left: 8px;
+      color: #FF6B6B;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>
+      It looks like you've lost your internet connection.
+      Don't worry, you can still access previously loaded pages!
+    </p>
+    <button class="retry-button" onclick="window.location.reload()">
+      Try Again
+    </button>
+
+    <div class="tips">
+      <h2>While you're offline:</h2>
+      <ul>
+        <li>Check your WiFi or mobile data connection</li>
+        <li>Try moving to an area with better signal</li>
+        <li>Some features may be limited without internet</li>
+        <li>Your progress is saved locally</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
