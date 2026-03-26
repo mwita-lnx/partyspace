@@ -42,11 +42,46 @@ export default function PWAInstallPrompt() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Listen for successful installation
-    window.addEventListener('appinstalled', () => {
+    const handleAppInstalled = async () => {
       console.log('PWA was installed');
       setShowInstallPrompt(false);
       setDeferredPrompt(null);
-    });
+
+      // Track installation on the client side as well
+      try {
+        const deviceInfo = {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          language: navigator.language,
+          screenResolution: `${window.screen.width}x${window.screen.height}`
+        };
+
+        // Detect install source
+        let installSource = 'other';
+        if (/android/i.test(deviceInfo.userAgent)) {
+          installSource = 'android';
+        } else if (/iphone|ipad|ipod/i.test(deviceInfo.userAgent)) {
+          installSource = 'ios';
+        } else if (/windows|mac|linux/i.test(deviceInfo.userAgent)) {
+          installSource = 'desktop';
+        }
+
+        await fetch('/api/app-install', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            deviceInfo,
+            installSource
+          })
+        });
+      } catch (error) {
+        console.error('Failed to track installation:', error);
+      }
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -88,7 +123,7 @@ export default function PWAInstallPrompt() {
 
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0">
-          <img src="/icon-72.png" alt="Party Space" className="w-16 h-16 rounded-xl" />
+          <img src="/icon-72.png?v=2" alt="Party Space" className="w-16 h-16 rounded-xl" />
         </div>
 
         <div className="flex-1">

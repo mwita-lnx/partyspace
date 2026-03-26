@@ -1,4 +1,4 @@
-const CACHE_NAME = 'party-space-v2';
+const CACHE_NAME = 'party-space-v3';
 const urlsToCache = [
   '/',
   '/landing',
@@ -20,14 +20,51 @@ const urlsToCache = [
   '/favicon.ico'
 ];
 
+// Track app installation
+async function trackInstallation() {
+  try {
+    const deviceInfo = {
+      userAgent: self.navigator.userAgent,
+      platform: self.navigator.platform,
+      language: self.navigator.language
+    };
+
+    // Detect install source
+    let installSource = 'other';
+    if (/android/i.test(deviceInfo.userAgent)) {
+      installSource = 'android';
+    } else if (/iphone|ipad|ipod/i.test(deviceInfo.userAgent)) {
+      installSource = 'ios';
+    } else if (/windows|mac|linux/i.test(deviceInfo.userAgent)) {
+      installSource = 'desktop';
+    }
+
+    await fetch('/api/app-install', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        deviceInfo,
+        installSource
+      })
+    });
+  } catch (error) {
+    console.error('Failed to track installation:', error);
+  }
+}
+
 // Install service worker and cache resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+    Promise.all([
+      caches.open(CACHE_NAME)
+        .then((cache) => {
+          console.log('Opened cache');
+          return cache.addAll(urlsToCache);
+        }),
+      trackInstallation()
+    ])
   );
   self.skipWaiting();
 });
